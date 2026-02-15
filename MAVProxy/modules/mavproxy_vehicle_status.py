@@ -29,19 +29,14 @@ class VehicleStatusModule(mp_module.MPModule):
         self.update_interval = 2.0  # seconds
         self.last_update = 0
         
-        # GUI window
-        self.frame = None
-        self.parent_pipe_send = None
-        self.close_event = None
-        self.child = None
+        # GUI window - will be created on demand
+        self.indicator = None
         
-        # Don't create window on startup - wait for user or first vehicle
-        self.window_visible = False
         print("Vehicle status module loaded. Use 'vstat show' to open window.")
         
     def mavlink_packet(self, msg):
         '''Process incoming MAVLink packets from all vehicles'''
-        if not self.enabled or not self.window_visible:
+        if not self.enabled or not self.window_visible or not self.indicator:
             return
             
         msg_type = msg.get_type()
@@ -119,7 +114,7 @@ class VehicleStatusModule(mp_module.MPModule):
             print("Vehicle status window shown")
             
         elif cmd == 'hide':
-            if self.window_visible and self.frame:
+            if self.window_visible and self.indicator:
                 self.close_window()
             self.window_visible = False
             print("Vehicle status window hidden")
@@ -145,48 +140,20 @@ class VehicleStatusModule(mp_module.MPModule):
             
     def create_window(self):
         '''Create the GUI window using multiprocessing'''
-        if self.child is not None and self.child.is_alive():
+        if self.indicator is not None and self.indicator.is_alive():
             return
             
-        # Create Pipe to send vehicle data from module to UI
-        # child_pipe_recv is for the GUI process, parent_pipe_send is for this process
-        child_pipe_recv, parent_pipe_send = multiproc.Pipe()
-        self.parent_pipe_send = parent_pipe_send
-        self.close_event = multiproc.Event()
-        self.close_event.clear()
-        self.child = multiproc.Process(target=self.child_task, args=(child_pipe_recv, parent_pipe_send))
-        self.child.start()
+        self.indicator = VehicleStatusIndicator(title='Vehicle Status Display')
         
     def close_window(self):
         '''Close the GUI window'''
-        if self.close_event:
-            self.close_event.set()
-        if self.child and self.child.is_alive():
-            self.child.join(2)
-        self.child = None
-        if self.parent_pipe_send:
-            self.parent_pipe_send.close()
-            self.parent_pipe_send = None
-        self.close_event = None
-        
-    def child_task(self, child_pipe_recv, parent_pipe_send):
-        '''Child process - this holds all the GUI elements'''
-        # Close the send end in the child process - child only needs receive
-        parent_pipe_send.close()
-        
-        from MAVProxy.modules.lib import wx_processguard
-        from MAVProxy.modules.lib.wx_vehiclestatus import VehicleStatusFrame
-        from MAVProxy.modules.lib.wx_loader import wx
-        
-        # Create wx application
-        app = wx.App(False)
-        app.frame = VehicleStatusFrame(pipe=child_pipe_recv, title='Vehicle Status Display')
-        app.frame.Show()
-        app.MainLoop()
+        if self.indicator:
+            self.indicator.close()
+            self.indicator = None
         
     def update_display(self):
         '''Update the GUI with current vehicle data'''
-        if not self.window_visible or not self.parent_pipe_send:
+        if not self.window_visible or not self.indicator or not self.indicator.is_alive():
             return
             
         # Check for stale vehicles (no heartbeat for 10+ seconds)
@@ -202,7 +169,7 @@ class VehicleStatusModule(mp_module.MPModule):
                 
         # Send data to GUI process
         try:
-            self.parent_pipe_send.send(self.vehicles)
+            self.indicator.parent_pipe_send.send(self.vehicles)
         except Exception as e:
             pass
             
@@ -212,17 +179,55 @@ class VehicleStatusModule(mp_module.MPModule):
         
     def idle_task(self):
         '''Periodic updates - called regularly by MAVProxy'''
-        if not self.enabled or not self.window_visible:
+        if not self.enabled or not self.window_visible or not self.indicator:
+            return
+            
+        if not self.indicator.is_alive():
+            self.needs_unloading = True
             return
             
         now = time.time()
         if now - self.last_update >= self.update_interval:
             self.update_display()
             self.last_update = now
-            
-        # Check if window was closed by user
-        if self.close_event and self.close_event.is_set():
-            self.needs_unloading = True
+
+
+class VehicleStatusIndicator():
+    '''A vehicle status indicator for MAVProxy.'''
+    def __init__(self, title='MAVProxy: Vehicle Status'):
+        self.title = title
+        # Create Pipe to send vehicle data from module to UI
+        self.child_pipe_recv, self.parent_pipe_send = multiproc.Pipe()
+        self.close_event = multiproc.Event()
+        self.close_event.clear()
+        self.child = multiproc.Process(target=self.child_task)
+        self.child.start()
+        self.child_pipe_recv.close()
+
+    def child_task(self):
+        '''Child process - this holds all the GUI elements'''
+        self.parent_pipe_send.close()
+        
+        from MAVProxy.modules.lib import wx_processguard
+        from MAVProxy.modules.lib.wx_loader import wx
+        from MAVProxy.modules.lib.wx_vehiclestatus import VehicleStatusFrame
+        
+        # Create wx application
+        app = wx.App(False)
+        app.frame = VehicleStatusFrame(pipe=self.child_pipe_recv, title=self.title)
+        app.frame.Show()
+        app.MainLoop()
+        self.close_event.set()
+
+    def close(self):
+        '''Close the window.'''
+        self.close_event.set()
+        if self.is_alive():
+            self.child.join(2)
+
+    def is_alive(self):
+        '''Check if child is still going'''
+        return self.child.is_alive()
 
 
 def init(mpstate):
