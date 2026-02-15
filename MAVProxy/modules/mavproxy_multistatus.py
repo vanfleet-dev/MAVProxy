@@ -29,10 +29,12 @@ class MultiStatusModule(mp_module.MPModule):
         self.update_interval = 2.0  # seconds
         self.last_update = 0
         
-        # GUI window - will be created on demand
+        # GUI window - create automatically when module loads
         self.indicator = None
+        self.create_window()
+        self.window_visible = True
         
-        print("Multi-status module loaded. Use 'multistatus show' to open window.")
+        print("Multi-status module loaded. Window opened automatically.")
         
     def mavlink_packet(self, msg):
         '''Process incoming MAVLink packets from all vehicles'''
