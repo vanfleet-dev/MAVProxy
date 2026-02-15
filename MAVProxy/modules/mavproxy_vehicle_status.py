@@ -63,9 +63,11 @@ class VehicleStatusModule(mp_module.MPModule):
         # Process different message types
         if msg_type == 'HEARTBEAT':
             # Get mode from heartbeat
-            mode_map = mavutil.mode_mapping_bynumber.get(msg.type, {})
-            mode = mode_map.get(msg.custom_mode, "UNKNOWN")
-            self.vehicles[sysid]['mode'] = mode
+            mode_map = mavutil.mode_mapping_bynumber(msg.type)
+            if mode_map and msg.custom_mode in mode_map:
+                self.vehicles[sysid]['mode'] = mode_map[msg.custom_mode]
+            else:
+                self.vehicles[sysid]['mode'] = "UNKNOWN"
             
         elif msg_type == 'GLOBAL_POSITION_INT':
             # Convert mm to meters for altitude
