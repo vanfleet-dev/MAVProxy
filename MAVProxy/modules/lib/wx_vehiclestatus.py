@@ -87,35 +87,37 @@ class VehicleStatusFrame(wx.Frame):
             v = self.vehicles[sysid]
             
             # SYS ID
-            self.grid.SetCellValue(row, 0, str(v['sysid']))
+            self.grid.SetCellValue(row, 0, str(v.get('sysid', sysid)))
             self.grid.SetCellAlignment(row, 0, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # MODE
-            self.grid.SetCellValue(row, 1, str(v['mode']))
+            self.grid.SetCellValue(row, 1, str(v.get('mode', 'UNKNOWN')))
             self.grid.SetCellAlignment(row, 1, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # ALT
-            self.grid.SetCellValue(row, 2, "%.1f" % v['alt'])
+            self.grid.SetCellValue(row, 2, "%.1f" % v.get('alt', 0.0))
             self.grid.SetCellAlignment(row, 2, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # AIRSPEED
-            self.grid.SetCellValue(row, 3, "%.1f" % v['airspeed'])
+            self.grid.SetCellValue(row, 3, "%.1f" % v.get('airspeed', 0.0))
             self.grid.SetCellAlignment(row, 3, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # BAT1
-            if v['bat1_voltage'] > 0:
-                if v['bat1_remaining'] >= 0:
-                    bat1_str = "%.1fV (%d%%)" % (v['bat1_voltage'], v['bat1_remaining'])
+            bat1_voltage = v.get('bat1_voltage', 0.0)
+            bat1_remaining = v.get('bat1_remaining', -1)
+            if bat1_voltage > 0:
+                if bat1_remaining >= 0:
+                    bat1_str = "%.1fV (%d%%)" % (bat1_voltage, bat1_remaining)
                 else:
-                    bat1_str = "%.1fV" % v['bat1_voltage']
+                    bat1_str = "%.1fV" % bat1_voltage
                 self.grid.SetCellValue(row, 4, bat1_str)
             else:
                 self.grid.SetCellValue(row, 4, "--")
             self.grid.SetCellAlignment(row, 4, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # Set battery color based on percentage
-            if v['bat1_remaining'] >= 0:
-                if v['bat1_remaining'] > 20:
+            if bat1_remaining >= 0:
+                if bat1_remaining > 20:
                     self.grid.SetCellBackgroundColour(row, 4, wx.Colour(200, 255, 200))  # Green
                 elif v['bat1_remaining'] > 10:
                     self.grid.SetCellBackgroundColour(row, 4, wx.Colour(255, 255, 200))  # Yellow
@@ -123,8 +125,9 @@ class VehicleStatusFrame(wx.Frame):
                     self.grid.SetCellBackgroundColour(row, 4, wx.Colour(255, 200, 200))  # Red
             
             # BAT2
-            if v['bat2_voltage'] > 0:
-                self.grid.SetCellValue(row, 5, "%.1fV" % v['bat2_voltage'])
+            bat2_voltage = v.get('bat2_voltage', 0.0)
+            if bat2_voltage > 0:
+                self.grid.SetCellValue(row, 5, "%.1fV" % bat2_voltage)
                 self.grid.SetCellBackgroundColour(row, 5, wx.Colour(200, 255, 200))  # Green
             else:
                 self.grid.SetCellValue(row, 5, "--")
@@ -132,7 +135,7 @@ class VehicleStatusFrame(wx.Frame):
             self.grid.SetCellAlignment(row, 5, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # HDG
-            self.grid.SetCellValue(row, 6, "%d" % int(v['hdg']))
+            self.grid.SetCellValue(row, 6, "%d" % int(v.get('hdg', 0)))
             self.grid.SetCellAlignment(row, 6, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # Set row color based on status
