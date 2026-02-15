@@ -31,7 +31,8 @@ class VehicleStatusModule(mp_module.MPModule):
         
         # GUI window
         self.frame = None
-        self.child_pipe_send = None
+        self.parent_pipe_send = None
+        self.child_pipe_recv = None
         self.close_event = None
         self.child = None
         
@@ -41,13 +42,8 @@ class VehicleStatusModule(mp_module.MPModule):
         
     def mavlink_packet(self, msg):
         '''Process incoming MAVLink packets from all vehicles'''
-        if not self.enabled:
+        if not self.enabled or not self.window_visible:
             return
-        
-        # Auto-create window when first vehicle detected
-        if not self.window_visible and msg.get_type() == 'HEARTBEAT':
-            self.create_window()
-            self.window_visible = True
             
         msg_type = msg.get_type()
         sysid = msg.get_srcSystem()
@@ -154,11 +150,15 @@ class VehicleStatusModule(mp_module.MPModule):
             return
             
         # Create Pipe to send vehicle data from module to UI
-        child_pipe_recv, self.child_pipe_send = multiproc.Pipe()
+        # child_pipe_recv is for the GUI process, parent_pipe_send is for this process
+        self.child_pipe_recv, self.parent_pipe_send = multiproc.Pipe()
         self.close_event = multiproc.Event()
         self.close_event.clear()
-        self.child = multiproc.Process(target=self.child_task, args=(child_pipe_recv, self.child_pipe_send))
+        self.child = multiproc.Process(target=self.child_task)
         self.child.start()
+        # Parent doesn't need the receive end
+        self.child_pipe_recv.close()
+        self.child_pipe_recv = None
         
     def close_window(self):
         '''Close the GUI window'''
@@ -167,13 +167,13 @@ class VehicleStatusModule(mp_module.MPModule):
         if self.child and self.child.is_alive():
             self.child.join(2)
         self.child = None
-        self.child_pipe_send = None
+        self.parent_pipe_send = None
         self.close_event = None
         
-    def child_task(self, child_pipe_recv, parent_pipe_send):
+    def child_task(self):
         '''Child process - this holds all the GUI elements'''
-        # Close the parent's send end in the child process
-        parent_pipe_send.close()
+        # Close the parent's send end in the child process - child only receives
+        self.parent_pipe_send.close()
         
         from MAVProxy.modules.lib import wx_processguard
         from MAVProxy.modules.lib.wx_vehiclestatus import VehicleStatusFrame
@@ -181,13 +181,13 @@ class VehicleStatusModule(mp_module.MPModule):
         
         # Create wx application
         app = wx.App(False)
-        app.frame = VehicleStatusFrame(pipe=child_pipe_recv, title='Vehicle Status Display')
+        app.frame = VehicleStatusFrame(pipe=self.child_pipe_recv, title='Vehicle Status Display')
         app.frame.Show()
         app.MainLoop()
         
     def update_display(self):
         '''Update the GUI with current vehicle data'''
-        if not self.window_visible or not self.child_pipe_send:
+        if not self.window_visible or not self.parent_pipe_send:
             return
             
         # Check for stale vehicles (no heartbeat for 10+ seconds)
@@ -203,8 +203,8 @@ class VehicleStatusModule(mp_module.MPModule):
                 
         # Send data to GUI process
         try:
-            self.child_pipe_send.send(self.vehicles)
-        except:
+            self.parent_pipe_send.send(self.vehicles)
+        except Exception as e:
             pass
             
     def unload(self):
