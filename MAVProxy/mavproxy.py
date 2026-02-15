@@ -1379,7 +1379,7 @@ if __name__ == '__main__':
     parser.add_option("--state-basedir", default=None, help="base directory for logs and aircraft directories")
     parser.add_option("--no-state", action='store_true', default=False, help="Don't save logs and other state to disk. Useful for read-only filesystems or long-running systems.")  # noqa:E501
     parser.add_option("--version", action='store_true', help="version information")
-    parser.add_option("--default-modules", default="log,signing,wp,rally,fence,ftp,param,relay,tuneopt,arm,mode,calibration,rc,auxopt,misc,cmdlong,battery,terrain,output,adsb,layout", help='default module list')  # noqa:E501
+    parser.add_option("--default-modules", default="log,signing,wp,rally,fence,ftp,param,relay,tuneopt,arm,mode,calibration,rc,auxopt,misc,cmdlong,battery,terrain,output,adsb,layout,multistatus", help='default module list')  # noqa:E501
     parser.add_option("--udp-timeout", dest="udp_timeout", default=0.0, type='float', help="Timeout for udp clients in seconds")  # noqa:E501
     parser.add_option("--retries", type=int, help="number of times to retry connection", default=3)
 

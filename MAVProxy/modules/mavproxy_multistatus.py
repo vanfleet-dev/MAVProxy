@@ -13,15 +13,15 @@ from pymavlink import mavutil
 import time
 
 
-class VehicleStatusModule(mp_module.MPModule):
+class MultiStatusModule(mp_module.MPModule):
     def __init__(self, mpstate):
-        super(VehicleStatusModule, self).__init__(mpstate, "vehicle_status", "Vehicle Status Display", public=True, multi_vehicle=True)
+        super(MultiStatusModule, self).__init__(mpstate, "multistatus", "Multi-Vehicle Status Display", public=True, multi_vehicle=True)
         
         # Vehicle data storage: {sysid: {'mode': x, 'alt': y, ...}}
         self.vehicles = {}
         
         # Add commands
-        self.add_command('vstat', self.cmd_vstat, "vehicle status display", ['show', 'hide', 'enable', 'disable', 'clear'])
+        self.add_command('multistatus', self.cmd_multistatus, "multi-vehicle status display", ['show', 'hide', 'enable', 'disable', 'clear'])
         
         # Settings
         self.enabled = True
@@ -32,7 +32,7 @@ class VehicleStatusModule(mp_module.MPModule):
         # GUI window - will be created on demand
         self.indicator = None
         
-        print("Vehicle status module loaded. Use 'vstat show' to open window.")
+        print("Multi-status module loaded. Use 'multistatus show' to open window.")
         
     def mavlink_packet(self, msg):
         '''Process incoming MAVLink packets from all vehicles'''
@@ -96,10 +96,10 @@ class VehicleStatusModule(mp_module.MPModule):
             elif msg.id == 1:  # Battery 2
                 self.vehicles[sysid]['bat2_voltage'] = msg.voltages[0] / 1000.0 if msg.voltages[0] != 65535 else 0.0
             
-    def cmd_vstat(self, args):
-        '''Handle vstat commands'''
+    def cmd_multistatus(self, args):
+        '''Handle multistatus commands'''
         if len(args) < 1:
-            print("Usage: vstat <show|hide|enable|disable|clear>")
+            print("Usage: multistatus <show|hide|enable|disable|clear>")
             print("  show    - Show the status window")
             print("  hide    - Hide the status window")
             print("  enable  - Enable status updates")
@@ -113,39 +113,39 @@ class VehicleStatusModule(mp_module.MPModule):
             if not self.window_visible:
                 self.create_window()
             self.window_visible = True
-            print("Vehicle status window shown")
+            print("Multi-status window shown")
             
         elif cmd == 'hide':
             if self.window_visible and self.indicator:
                 self.close_window()
             self.window_visible = False
-            print("Vehicle status window hidden")
+            print("Multi-status window hidden")
             
         elif cmd == 'enable':
             self.enabled = True
             if not self.window_visible:
                 self.create_window()
                 self.window_visible = True
-            print("Vehicle status updates enabled")
+            print("Multi-status updates enabled")
             
         elif cmd == 'disable':
             self.enabled = False
-            print("Vehicle status updates disabled")
+            print("Multi-status updates disabled")
             
         elif cmd == 'clear':
             self.vehicles = {}
-            print("Vehicle status data cleared")
+            print("Multi-status data cleared")
             
         else:
             print("Unknown command: %s" % cmd)
-            print("Usage: vstat <show|hide|enable|disable|clear>")
+            print("Usage: multistatus <show|hide|enable|disable|clear>")
             
     def create_window(self):
         '''Create the GUI window using multiprocessing'''
         if self.indicator is not None and self.indicator.is_alive():
             return
             
-        self.indicator = VehicleStatusIndicator(title='Vehicle Status Display')
+        self.indicator = MultiStatusIndicator(title='Multi-Vehicle Status')
         
     def close_window(self):
         '''Close the GUI window'''
@@ -194,9 +194,9 @@ class VehicleStatusModule(mp_module.MPModule):
             self.last_update = now
 
 
-class VehicleStatusIndicator():
-    '''A vehicle status indicator for MAVProxy.'''
-    def __init__(self, title='MAVProxy: Vehicle Status'):
+class MultiStatusIndicator():
+    '''A multi-vehicle status indicator for MAVProxy.'''
+    def __init__(self, title='MAVProxy: Multi-Status'):
         self.title = title
         # Create Pipe to send vehicle data from module to UI
         self.child_pipe_recv, self.parent_pipe_send = multiproc.Pipe()
@@ -234,4 +234,4 @@ class VehicleStatusIndicator():
 
 def init(mpstate):
     '''Required initialization function'''
-    return VehicleStatusModule(mpstate)
+    return MultiStatusModule(mpstate)
