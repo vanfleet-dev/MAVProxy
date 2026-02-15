@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+
+"""
+  wxWidgets vehicle status display window for MAVProxy
+"""
+
+import time
+
+from MAVProxy.modules.lib.wx_loader import wx
+import wx.grid
+
+
+class VehicleStatusFrame(wx.Frame):
+    '''The main GUI frame for the vehicle status display'''
+    
+    def __init__(self, pipe, title='Vehicle Status Display'):
+        super(VehicleStatusFrame, self).__init__(None, title=title, size=(900, 400))
+        
+        self.pipe = pipe
+        self.vehicles = {}
+        
+        # Create panel
+        panel = wx.Panel(self)
+        
+        # Create grid
+        self.grid = wx.grid.Grid(panel)
+        self.grid.CreateGrid(0, 7)
+        
+        # Set column labels
+        self.grid.SetColLabelValue(0, "SYS ID")
+        self.grid.SetColLabelValue(1, "MODE")
+        self.grid.SetColLabelValue(2, "ALT (m)")
+        self.grid.SetColLabelValue(3, "AIRSPD (m/s)")
+        self.grid.SetColLabelValue(4, "BAT1")
+        self.grid.SetColLabelValue(5, "BAT2")
+        self.grid.SetColLabelValue(6, "HDG")
+        
+        # Set column widths
+        self.grid.SetColSize(0, 70)
+        self.grid.SetColSize(1, 120)
+        self.grid.SetColSize(2, 80)
+        self.grid.SetColSize(3, 100)
+        self.grid.SetColSize(4, 100)
+        self.grid.SetColSize(5, 100)
+        self.grid.SetColSize(6, 60)
+        
+        # Make grid read-only
+        self.grid.EnableEditing(False)
+        
+        # Create sizer
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.grid, 1, wx.EXPAND | wx.ALL, 5)
+        panel.SetSizer(sizer)
+        
+        # Timer to check for updates from parent process
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.on_timer, self.timer)
+        self.timer.Start(500)  # Check every 500ms
+        
+        # Handle close event
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+        
+    def on_timer(self, event):
+        '''Check for updates from parent process'''
+        while self.pipe.poll():
+            try:
+                self.vehicles = self.pipe.recv()
+                self.refresh_grid()
+            except EOFError:
+                break
+                
+    def refresh_grid(self):
+        '''Refresh the grid with current vehicle data'''
+        # Clear existing rows
+        current_rows = self.grid.GetNumberRows()
+        if current_rows > 0:
+            self.grid.DeleteRows(0, current_rows)
+        
+        # Add new rows
+        if not self.vehicles:
+            return
+            
+        self.grid.AppendRows(len(self.vehicles))
+        
+        row = 0
+        for sysid in sorted(self.vehicles.keys()):
+            v = self.vehicles[sysid]
+            
+            # SYS ID
+            self.grid.SetCellValue(row, 0, str(v['sysid']))
+            self.grid.SetCellAlignment(row, 0, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
+            # MODE
+            self.grid.SetCellValue(row, 1, str(v['mode']))
+            self.grid.SetCellAlignment(row, 1, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
+            # ALT
+            self.grid.SetCellValue(row, 2, "%.1f" % v['alt'])
+            self.grid.SetCellAlignment(row, 2, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
+            # AIRSPEED
+            self.grid.SetCellValue(row, 3, "%.1f" % v['airspeed'])
+            self.grid.SetCellAlignment(row, 3, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
+            # BAT1
+            if v['bat1_voltage'] > 0:
+                if v['bat1_remaining'] >= 0:
+                    bat1_str = "%.1fV (%d%%)" % (v['bat1_voltage'], v['bat1_remaining'])
+                else:
+                    bat1_str = "%.1fV" % v['bat1_voltage']
+                self.grid.SetCellValue(row, 4, bat1_str)
+            else:
+                self.grid.SetCellValue(row, 4, "--")
+            self.grid.SetCellAlignment(row, 4, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
+            # Set battery color based on percentage
+            if v['bat1_remaining'] >= 0:
+                if v['bat1_remaining'] > 20:
+                    self.grid.SetCellBackgroundColour(row, 4, wx.Colour(200, 255, 200))  # Green
+                elif v['bat1_remaining'] > 10:
+                    self.grid.SetCellBackgroundColour(row, 4, wx.Colour(255, 255, 200))  # Yellow
+                else:
+                    self.grid.SetCellBackgroundColour(row, 4, wx.Colour(255, 200, 200))  # Red
+            
+            # BAT2
+            if v['bat2_voltage'] > 0:
+                self.grid.SetCellValue(row, 5, "%.1fV" % v['bat2_voltage'])
+                self.grid.SetCellBackgroundColour(row, 5, wx.Colour(200, 255, 200))  # Green
+            else:
+                self.grid.SetCellValue(row, 5, "--")
+                self.grid.SetCellBackgroundColour(row, 5, wx.Colour(240, 240, 240))  # Gray
+            self.grid.SetCellAlignment(row, 5, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
+            # HDG
+            self.grid.SetCellValue(row, 6, "%d" % int(v['hdg']))
+            self.grid.SetCellAlignment(row, 6, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
+            # Set row color based on status
+            if v.get('status') == 'stale':
+                for col in range(7):
+                    self.grid.SetCellBackgroundColour(row, col, wx.Colour(220, 220, 220))
+                    self.grid.SetCellTextColour(row, col, wx.Colour(150, 150, 150))
+            
+            row += 1
+            
+        self.grid.Refresh()
+        
+    def on_close(self, event):
+        '''Handle window close event'''
+        self.timer.Stop()
+        self.Destroy()
