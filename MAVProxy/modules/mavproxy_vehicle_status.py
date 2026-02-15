@@ -35,14 +35,19 @@ class VehicleStatusModule(mp_module.MPModule):
         self.close_event = None
         self.child = None
         
-        # Create window on startup
-        self.create_window()
-        self.window_visible = True
+        # Don't create window on startup - wait for user or first vehicle
+        self.window_visible = False
+        print("Vehicle status module loaded. Use 'vstat show' to open window.")
         
     def mavlink_packet(self, msg):
         '''Process incoming MAVLink packets from all vehicles'''
-        if not self.enabled or not self.window_visible:
+        if not self.enabled:
             return
+        
+        # Auto-create window when first vehicle detected
+        if not self.window_visible and msg.get_type() == 'HEARTBEAT':
+            self.create_window()
+            self.window_visible = True
             
         msg_type = msg.get_type()
         sysid = msg.get_srcSystem()
@@ -152,9 +157,8 @@ class VehicleStatusModule(mp_module.MPModule):
         child_pipe_recv, self.child_pipe_send = multiproc.Pipe()
         self.close_event = multiproc.Event()
         self.close_event.clear()
-        self.child = multiproc.Process(target=self.child_task, args=(child_pipe_recv,))
+        self.child = multiproc.Process(target=self.child_task, args=(child_pipe_recv, self.child_pipe_send))
         self.child.start()
-        child_pipe_recv.close()
         
     def close_window(self):
         '''Close the GUI window'''
@@ -166,8 +170,11 @@ class VehicleStatusModule(mp_module.MPModule):
         self.child_pipe_send = None
         self.close_event = None
         
-    def child_task(self, child_pipe_recv):
+    def child_task(self, child_pipe_recv, parent_pipe_send):
         '''Child process - this holds all the GUI elements'''
+        # Close the parent's send end in the child process
+        parent_pipe_send.close()
+        
         from MAVProxy.modules.lib import wx_processguard
         from MAVProxy.modules.lib.wx_vehiclestatus import VehicleStatusFrame
         from MAVProxy.modules.lib.wx_loader import wx
