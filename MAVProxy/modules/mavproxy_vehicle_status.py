@@ -32,7 +32,6 @@ class VehicleStatusModule(mp_module.MPModule):
         # GUI window
         self.frame = None
         self.parent_pipe_send = None
-        self.child_pipe_recv = None
         self.close_event = None
         self.child = None
         
@@ -151,14 +150,12 @@ class VehicleStatusModule(mp_module.MPModule):
             
         # Create Pipe to send vehicle data from module to UI
         # child_pipe_recv is for the GUI process, parent_pipe_send is for this process
-        self.child_pipe_recv, self.parent_pipe_send = multiproc.Pipe()
+        child_pipe_recv, parent_pipe_send = multiproc.Pipe()
+        self.parent_pipe_send = parent_pipe_send
         self.close_event = multiproc.Event()
         self.close_event.clear()
-        self.child = multiproc.Process(target=self.child_task)
+        self.child = multiproc.Process(target=self.child_task, args=(child_pipe_recv, parent_pipe_send))
         self.child.start()
-        # Parent doesn't need the receive end
-        self.child_pipe_recv.close()
-        self.child_pipe_recv = None
         
     def close_window(self):
         '''Close the GUI window'''
@@ -167,13 +164,15 @@ class VehicleStatusModule(mp_module.MPModule):
         if self.child and self.child.is_alive():
             self.child.join(2)
         self.child = None
-        self.parent_pipe_send = None
+        if self.parent_pipe_send:
+            self.parent_pipe_send.close()
+            self.parent_pipe_send = None
         self.close_event = None
         
-    def child_task(self):
+    def child_task(self, child_pipe_recv, parent_pipe_send):
         '''Child process - this holds all the GUI elements'''
-        # Close the parent's send end in the child process - child only receives
-        self.parent_pipe_send.close()
+        # Close the send end in the child process - child only needs receive
+        parent_pipe_send.close()
         
         from MAVProxy.modules.lib import wx_processguard
         from MAVProxy.modules.lib.wx_vehiclestatus import VehicleStatusFrame
@@ -181,7 +180,7 @@ class VehicleStatusModule(mp_module.MPModule):
         
         # Create wx application
         app = wx.App(False)
-        app.frame = VehicleStatusFrame(pipe=self.child_pipe_recv, title='Vehicle Status Display')
+        app.frame = VehicleStatusFrame(pipe=child_pipe_recv, title='Vehicle Status Display')
         app.frame.Show()
         app.MainLoop()
         
