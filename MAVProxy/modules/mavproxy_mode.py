@@ -18,6 +18,7 @@ class ModeModule(mp_module.MPModule):
             '(MODE)'
         ])
         self.add_command('guided', self.cmd_guided, "fly to a clicked location on map")
+        self.add_command('g', self.cmd_guided, "fly to a clicked location (shortcut)")
         self.add_command('confirm', self.cmd_confirm, "confirm a command")
         self.add_completion_function('(MODE)', self.complete_available_modes)
 

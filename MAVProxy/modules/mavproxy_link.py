@@ -86,6 +86,7 @@ class LinkModule(mp_module.MPModule):
                           'dataratelogging (DLSTATE)',
                           'hl (HLSTATE)'])
         self.add_command('vehicle', self.cmd_vehicle, "vehicle control")
+        self.add_command('v', self.cmd_vehicle, "vehicle control (shortcut)")
         self.add_command('alllinks', self.cmd_alllinks, "send command on all links", ["(COMMAND)"])
         self.add_command('ping', self.cmd_ping, "ping mavlink nodes")
         self.no_fwd_types = set()
