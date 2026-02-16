@@ -41,7 +41,7 @@ class VehicleStatusFrame(wx.Frame):
         self.grid.SetColLabelValue(3, "ARSPD")
         self.grid.SetColLabelValue(4, "THR")
         self.grid.SetColLabelValue(5, "BAT1")
-        self.grid.SetColLabelValue(6, "BAT2")
+        self.grid.SetColLabelValue(6, "FUEL")
         self.grid.SetColLabelValue(7, "LINK")
         
         # Auto-size columns to fit content
