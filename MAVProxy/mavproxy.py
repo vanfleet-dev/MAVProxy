@@ -262,7 +262,7 @@ class MPState(object):
             MPSetting('rtscts', bool, opts.rtscts, 'enable flow control'),
             MPSetting('select_timeout', float, 0.01, 'select timeout'),
 
-            MPSetting('altreadout', int, 10, 'Altitude Readout',
+            MPSetting('altreadout', int, 0, 'Altitude Readout',
                       range=(0, 100), increment=1, tab='Announcements'),
             MPSetting('distreadout', int, 200, 'Distance Readout', range=(0, 10000), increment=1),
 
