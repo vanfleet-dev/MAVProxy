@@ -33,7 +33,6 @@ class MinMinConsoleModule(mp_module.MPModule):
         self.start_time = 0.0
         self.total_time = 0.0
         self.speed = 0
-        self.max_link_num = 0
         self.last_sys_status_health = 0
         self.last_sys_status_errors_announce = 0
         self.user_added = {}
@@ -453,56 +452,6 @@ class MinMinConsoleModule(mp_module.MPModule):
             if self.safety_on:
                 armstring += '(SAFE)'
             self.console.set_status('ARM', armstring, fg=arm_colour)
-            if self.max_link_num != len(self.mpstate.mav_master):
-                for i in range(self.max_link_num):
-                    self.console.set_status('LINK%u'%(i+1), '', row=4)
-                self.max_link_num = len(self.mpstate.mav_master)
-            for m in self.mpstate.mav_master:
-                if self.mpstate.settings.checkdelay:
-                    highest_msec_key = (sysid, compid)
-                    linkdelay = (self.mpstate.status.highest_msec.get(highest_msec_key, 0) - m.highest_msec.get(highest_msec_key,0))*1.0e-3
-                else:
-                    linkdelay = 0
-                linkline = "LINK %s " % (self.link_label(m))
-                fg = 'dark green'
-                if m.linkerror:
-                    linkline += "down"
-                    fg = 'red'
-                else:
-                    packets_rcvd_percentage = 100
-                    if (m.mav_count+m.mav_loss) != 0: #avoid divide-by-zero
-                        packets_rcvd_percentage = (100.0 * m.mav_count) / (m.mav_count + m.mav_loss)
-
-                    linkbits = ["%u pkts" % m.mav_count,
-                                "%u lost" % m.mav_loss,
-                                "%.2fs delay" % linkdelay,
-                    ]
-                    try:
-                        if m.mav.signing.sig_count:
-                            # other end is sending us signed packets
-                            if not m.mav.signing.secret_key:
-                                # we've received signed packets but
-                                # can't verify them
-                                fg = 'orange'
-                                linkbits.append("!KEY")
-                            elif not m.mav.signing.sign_outgoing:
-                                # we've received signed packets but aren't
-                                # signing outselves; this can lead to hairloss
-                                fg = 'orange'
-                                linkbits.append("!SIGNING")
-                            if m.mav.signing.badsig_count:
-                                fg = 'orange'
-                                linkbits.append("%u badsigs" % m.mav.signing.badsig_count)
-                    except AttributeError as e:
-                        # mav.signing.sig_count probably doesn't exist
-                        pass
-
-                    linkline += "OK"
-
-                    if linkdelay > 1 and fg == 'dark green':
-                        fg = 'orange'
-
-                self.console.set_status('LINK%u'%m.linknum, linkline, row=4, fg=fg)
 
     def handle_mission_current(self, msg):
             master = self.master

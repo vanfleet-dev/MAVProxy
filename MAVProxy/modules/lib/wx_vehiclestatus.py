@@ -42,7 +42,7 @@ class VehicleStatusFrame(wx.Frame):
         self.grid.SetColLabelValue(4, "THR")
         self.grid.SetColLabelValue(5, "BAT1")
         self.grid.SetColLabelValue(6, "BAT2")
-        self.grid.SetColLabelValue(7, "HDG")
+        self.grid.SetColLabelValue(7, "LINK")
         
         # Auto-size columns to fit content
         self.grid.AutoSizeColumns()
@@ -55,7 +55,7 @@ class VehicleStatusFrame(wx.Frame):
         self.grid.SetColSize(4, 35)   # THR
         self.grid.SetColSize(5, 80)   # BAT1
         self.grid.SetColSize(6, 60)   # BAT2
-        self.grid.SetColSize(7, 40)   # HDG
+        self.grid.SetColSize(7, 45)   # LINK
         
         # Make grid read-only
         self.grid.EnableEditing(False)
@@ -151,9 +151,15 @@ class VehicleStatusFrame(wx.Frame):
                 self.grid.SetCellBackgroundColour(row, 6, wx.Colour(240, 240, 240))  # Gray
             self.grid.SetCellAlignment(row, 6, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
-            # HDG
-            self.grid.SetCellValue(row, 7, "%d" % int(v.get('hdg', 0)))
+            # LINK
+            link_status = v.get('link_status', 'OK')
+            self.grid.SetCellValue(row, 7, link_status)
             self.grid.SetCellAlignment(row, 7, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            # Set LINK color based on status
+            if link_status == 'OK':
+                self.grid.SetCellBackgroundColour(row, 7, wx.Colour(200, 255, 200))  # Green
+            else:
+                self.grid.SetCellBackgroundColour(row, 7, wx.Colour(255, 200, 200))  # Red
             
             # Set row color based on status
             if v.get('status') == 'stale':

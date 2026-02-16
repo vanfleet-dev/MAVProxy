@@ -55,13 +55,14 @@ class MultiStatusModule(mp_module.MPModule):
                 'bat1_voltage': 0.0,
                 'bat1_remaining': -1,
                 'bat2_voltage': 0.0,
-                'hdg': 0,
+                'link_status': 'OK',
                 'last_seen': time.time(),
                 'status': 'active'
             }
         
-        # Update last seen time
+        # Update last seen time and reset link status
         self.vehicles[sysid]['last_seen'] = time.time()
+        self.vehicles[sysid]['link_status'] = 'OK'
         
         # Process different message types
         if msg_type == 'HEARTBEAT':
@@ -170,8 +171,10 @@ class MultiStatusModule(mp_module.MPModule):
             vehicle = self.vehicles[sysid]
             if now - vehicle['last_seen'] > stale_threshold:
                 vehicle['status'] = 'stale'
+                vehicle['link_status'] = 'DOWN'
             else:
                 vehicle['status'] = 'active'
+                vehicle['link_status'] = 'OK'
                 
         # Send data to GUI process
         try:
