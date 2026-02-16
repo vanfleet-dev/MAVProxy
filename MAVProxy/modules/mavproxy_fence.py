@@ -212,16 +212,6 @@ class FenceModule(mission_item_protocol.MissionItemProtocolModule):
             self.say("fence breach")
         self.healthy = healthy
 
-        # console output for fence:
-        if not self.present:
-            self.console.set_status('Fence', 'FEN', row=0, fg='black')
-        elif self.enabled is False:
-            self.console.set_status('Fence', 'FEN', row=0, fg='grey')
-        elif self.enabled is True and self.healthy is True:
-            self.console.set_status('Fence', 'FEN', row=0, fg='green')
-        elif self.enabled is True and self.healthy is False:
-            self.console.set_status('Fence', 'FEN', row=0, fg='red')
-
     def mavlink_packet(self, m):
         if m.get_type() == 'SYS_STATUS' and self.message_is_from_primary_vehicle(m):
             self.handle_sys_status(m)

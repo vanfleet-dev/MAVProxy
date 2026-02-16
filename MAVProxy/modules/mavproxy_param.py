@@ -381,7 +381,6 @@ class ParamState:
             # each entry takes 11 bytes on average
             per_entry_size = 11
             done = min(int(total_size / per_entry_size), self.ftp_count-1)
-            self.mpstate.console.set_status('Params', 'Param %u/%u' % (done, self.ftp_count))
 
     def ftp_callback(self, fh):
         '''callback from ftp fetch of parameters'''
@@ -417,7 +416,6 @@ class ParamState:
             idx += 1
 
         self.ftp_failed = False
-        self.mpstate.console.set_status('Params', 'Param %u/%u' % (total_params, total_params))
         print("Received %u parameters (ftp)" % total_params)
         if self.logdir is not None:
             self.mav_param.save(os.path.join(self.logdir, self.parm_file), '*', verbose=True)
@@ -854,10 +852,7 @@ class ParamState:
 
     def ftp_upload_progress(self, proportion):
         '''callback from ftp put of parameters'''
-        if proportion is None:
-            self.mpstate.console.set_status('Params', 'Params ERR')
-        else:
-            self.mpstate.console.set_status('Params', 'Param %.1f%%' % (100.0*proportion))
+        pass
 
     def best_type(self, v):
         '''work out best type for a variable'''
