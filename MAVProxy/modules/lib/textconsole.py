@@ -26,7 +26,7 @@ class SimpleConsole():
             text = str(text)
         self.write(text + '\n', fg=fg, bg=bg)
 
-    def set_status(self, name, text='', row=0, fg='black', bg='white'):
+    def set_status(self, name, text='', row=0, fg='black', bg='white', bold=False):
         '''set a status value'''
         pass
 
