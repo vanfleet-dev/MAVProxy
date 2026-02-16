@@ -181,22 +181,6 @@ class MissionEditorFrame(wx.Frame):
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         self.label_sync_state = wx.StaticText(self, wx.ID_ANY, "UNSYNCED   \n", style=wx.ALIGN_CENTRE)
-        self.label_wp_radius = wx.StaticText(self, wx.ID_ANY, "WP Radius")
-        self.text_ctrl_wp_radius = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER | wx.TE_PROCESS_TAB)
-        self.label_loiter_rad = wx.StaticText(self, wx.ID_ANY, "Loiter Radius")
-        self.text_ctrl_loiter_radius = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER | wx.TE_PROCESS_TAB)
-        self.checkbox_loiter_dir = wx.CheckBox(self, wx.ID_ANY, "CW")
-        # The AGL checkbox is not yet implemented.
-        # self.checkbox_agl = wx.CheckBox(self, wx.ID_ANY, "AGL")
-        self.label_default_alt = wx.StaticText(self, wx.ID_ANY, "Default Alt")
-        self.text_ctrl_wp_default_alt = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER | wx.TE_PROCESS_TAB)
-        self.label_home_location = wx.StaticText(self, wx.ID_ANY, "Home Location")
-        self.label_home_lat = wx.StaticText(self, wx.ID_ANY, "Lat")
-        self.label_home_lat_value = wx.StaticText(self, wx.ID_ANY, "0.0")
-        self.label_home_lon = wx.StaticText(self, wx.ID_ANY, "Lon")
-        self.label_home_lon_value = wx.StaticText(self, wx.ID_ANY, "0.0")
-        self.label_home_alt = wx.StaticText(self, wx.ID_ANY, "Alt (abs)")
-        self.label_home_alt_value = wx.StaticText(self, wx.ID_ANY, "0.0")
         self.button_read_wps = wx.Button(self, wx.ID_ANY, "Read WPs")
         self.button_write_wps = wx.Button(self, wx.ID_ANY, "Write WPs")
         self.button_load_wp_file = wx.Button(self, wx.ID_ANY, "Load WP File")
@@ -204,6 +188,11 @@ class MissionEditorFrame(wx.Frame):
         self.grid_mission = wx.grid.Grid(self, wx.ID_ANY, size=(1, 1))
         self.button_add_wp = wx.Button(self, wx.ID_ANY, "Add Below")
         self.button_split = wx.Button(self, wx.ID_ANY, "Split")
+        
+        # Store home location values (needed for mission operations)
+        self.home_lat = 0.0
+        self.home_lon = 0.0
+        self.home_alt = 0.0
 
         self.__set_properties()
         self.__do_layout()
@@ -211,13 +200,6 @@ class MissionEditorFrame(wx.Frame):
         self.ElevationModel = mp_elevation.ElevationModel(database=elemodel)
 
 
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_wp_radius_enter, self.text_ctrl_wp_radius)
-        self.Bind(wx.EVT_TEXT, self.on_wp_radius_changed, self.text_ctrl_wp_radius)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_loiter_rad_enter, self.text_ctrl_loiter_radius)
-        self.Bind(wx.EVT_TEXT, self.on_loiter_rad_change, self.text_ctrl_loiter_radius)
-        self.Bind(wx.EVT_CHECKBOX, self.on_loiter_dir_cb_change, self.checkbox_loiter_dir)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_wp_default_alt_enter, self.text_ctrl_wp_default_alt)
-        self.Bind(wx.EVT_TEXT, self.on_wp_default_alt_change, self.text_ctrl_wp_default_alt)
         self.Bind(wx.EVT_BUTTON, self.read_wp_pushed, self.button_read_wps)
         self.Bind(wx.EVT_BUTTON, self.write_wp_pushed, self.button_write_wps)
         self.Bind(wx.EVT_BUTTON, self.load_wp_file_pushed, self.button_load_wp_file)
@@ -276,14 +258,6 @@ class MissionEditorFrame(wx.Frame):
         self.SetSize((820, 480))
         self.label_sync_state.SetForegroundColour(wx.Colour(255, 0, 0))
         self.label_sync_state.SetFont(wx.Font(14, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Droid Sans"))
-        self.text_ctrl_wp_radius.SetMinSize((50, 27))
-        self.text_ctrl_loiter_radius.SetMinSize((50, 27))
-        self.text_ctrl_wp_default_alt.SetMinSize((70, 27))
-        self.label_home_lat_value.SetMinSize((100, 17))
-        self.label_home_lat_value.SetForegroundColour(wx.Colour(0, 127, 255))
-        self.label_home_lon_value.SetMinSize((100, 17))
-        self.label_home_lon_value.SetForegroundColour(wx.Colour(0, 127, 255))
-        self.label_home_alt_value.SetForegroundColour(wx.Colour(0, 127, 255))
         self.grid_mission.CreateGrid(0, 15)
         self.grid_mission.SetRowLabelSize(20)
         self.grid_mission.SetColLabelSize(20)
@@ -309,57 +283,18 @@ class MissionEditorFrame(wx.Frame):
     def __do_layout(self):
         # begin wxGlade: MissionEditorFrame.__do_layout
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_top = wx.BoxSizer(wx.HORIZONTAL)
         sizer_16 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_12 = wx.BoxSizer(wx.VERTICAL)
-        sizer_14 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_13 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_1 = wx.BoxSizer(wx.VERTICAL)
-        sizer_11 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_9 = wx.BoxSizer(wx.VERTICAL)
-        sizer_5 = wx.BoxSizer(wx.VERTICAL)
-        sizer_15 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_4.Add(self.label_sync_state, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
-        sizer_4.Add((10, 0), 0, 0, 0)
-        sizer_5.Add(self.label_wp_radius, 0, 0, 0)
-        sizer_5.Add(self.text_ctrl_wp_radius, 0, 0, 0)
-        sizer_5.Add(self.label_loiter_rad, 0, 0, 0)
-        sizer_15.Add(self.text_ctrl_loiter_radius, 0, 0, 0)
-        sizer_15.Add(self.checkbox_loiter_dir, 0, 0, 0)
-        sizer_5.Add(sizer_15, 1, wx.EXPAND, 0)
-        sizer_4.Add(sizer_5, 0, wx.EXPAND, 0)
-        sizer_4.Add((20, 20), 0, 0, 0)
-        sizer_9.Add(self.label_default_alt, 0, 0, 0)
-        sizer_9.Add(self.text_ctrl_wp_default_alt, 0, 0, 0)
-        sizer_4.Add(sizer_9, 0, wx.EXPAND, 0)
-        sizer_4.Add((20, 20), 0, 0, 0)
-        sizer_1.Add(self.label_home_location, 0, 0, 0)
-        sizer_2.Add(self.label_home_lat, 0, 0, 0)
-        sizer_2.Add((40, 0), 0, 0, 0)
-        sizer_2.Add(self.label_home_lat_value, 0, 0, 0)
-        sizer_1.Add(sizer_2, 1, wx.EXPAND, 0)
-        sizer_10.Add(self.label_home_lon, 0, 0, 0)
-        sizer_10.Add((36, 0), 0, 0, 0)
-        sizer_10.Add(self.label_home_lon_value, 0, 0, 0)
-        sizer_1.Add(sizer_10, 1, wx.EXPAND, 0)
-        sizer_11.Add(self.label_home_alt, 0, 0, 0)
-        sizer_11.Add((11, 0), 0, 0, 0)
-        sizer_11.Add(self.label_home_alt_value, 0, 0, 0)
-        sizer_1.Add(sizer_11, 1, wx.EXPAND, 0)
-        sizer_4.Add(sizer_1, 0, wx.EXPAND, 0)
-        sizer_13.Add(self.button_read_wps, 0, 0, 0)
-        sizer_13.Add((20, 20), 0, 0, 0)
-        sizer_13.Add(self.button_write_wps, 0, 0, 0)
-        sizer_12.Add(sizer_13, 1, wx.EXPAND, 0)
-        sizer_12.Add((20, 20), 0, 0, 0)
-        sizer_14.Add(self.button_load_wp_file, 0, 0, 0)
-        sizer_14.Add((20, 20), 0, 0, 0)
-        sizer_14.Add(self.button_save_wp_file, 0, 0, 0)
-        sizer_12.Add(sizer_14, 1, wx.EXPAND, 0)
-        sizer_4.Add(sizer_12, 0, wx.EXPAND, 0)
-        sizer_3.Add(sizer_4, 0, wx.EXPAND, 0)
+        sizer_top.Add(self.label_sync_state, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        sizer_top.Add((10, 0), 0, 0, 0)
+        sizer_top.Add(self.button_read_wps, 0, 0, 0)
+        sizer_top.Add((10, 0), 0, 0, 0)
+        sizer_top.Add(self.button_write_wps, 0, 0, 0)
+        sizer_top.Add((10, 0), 0, 0, 0)
+        sizer_top.Add(self.button_load_wp_file, 0, 0, 0)
+        sizer_top.Add((10, 0), 0, 0, 0)
+        sizer_top.Add(self.button_save_wp_file, 0, 0, 0)
+        sizer_3.Add(sizer_top, 0, wx.EXPAND, 0)
         sizer_3.Add(self.grid_mission, 1, wx.EXPAND, 0)
         sizer_16.Add(self.button_add_wp, 0, 0, 0)
         sizer_16.Add(self.button_split, 0, 0, 0)
@@ -432,12 +367,9 @@ class MissionEditorFrame(wx.Frame):
 
             if row == -1:
                 #1st mission item is special: it's the immutable home position
-                self.label_home_lat_value.SetLabel(
-                        str(event.get_arg("lat")))
-                self.label_home_lon_value.SetLabel(
-                        str(event.get_arg("lon")))
-                self.label_home_alt_value.SetLabel(
-                        str(event.get_arg("alt")))
+                self.home_lat = event.get_arg("lat")
+                self.home_lon = event.get_arg("lon")
+                self.home_alt = event.get_arg("alt")
 
             else: #not the first mission item
                 if command in me_defines.miss_cmds:
@@ -473,21 +405,11 @@ class MissionEditorFrame(wx.Frame):
 
 
         elif event.get_type() == me_event.MEGE_SET_WP_RAD:
-            self.text_ctrl_wp_radius.SetValue(str(event.get_arg("wp_rad")))
-            self.text_ctrl_wp_radius.SetForegroundColour(wx.Colour(0, 0, 0))
+            pass  # Widget removed
         elif event.get_type() == me_event.MEGE_SET_LOIT_RAD:
-            loiter_radius = event.get_arg("loit_rad")
-            self.text_ctrl_loiter_radius.SetValue(
-                    str(math.fabs(loiter_radius)))
-            self.text_ctrl_loiter_radius.SetForegroundColour(wx.Colour(0, 0, 0))
-            if (loiter_radius < 0.0):
-                self.checkbox_loiter_dir.SetValue(False)
-            else:
-                self.checkbox_loiter_dir.SetValue(True)
+            pass  # Widget removed
         elif event.get_type() == me_event.MEGE_SET_WP_DEFAULT_ALT:
-            self.text_ctrl_wp_default_alt.SetValue(str(
-                event.get_arg("def_wp_alt")))
-            self.text_ctrl_wp_default_alt.SetForegroundColour(wx.Colour(0, 0, 0))
+            pass  # Widget removed
         elif event.get_type() == me_event.MEGE_SET_LAST_MAP_CLICK_POS:
             self.last_map_click_pos = event.get_arg("click_pos")
 
@@ -505,8 +427,7 @@ class MissionEditorFrame(wx.Frame):
             self.grid_mission.SetCellValue(row_num, i, "0.0")
 
         #set altitude to default:
-        self.grid_mission.SetCellValue(row_num, ME_ALT_COL,
-                self.text_ctrl_wp_default_alt.GetValue())
+        self.grid_mission.SetCellValue(row_num, ME_ALT_COL, "50.0")
 
         #populate frm cell editor and set to default value
 
@@ -565,9 +486,9 @@ class MissionEditorFrame(wx.Frame):
             self.grid_mission.GetNumberRows()+1))
 
         #home point first:
-        lat = float(self.label_home_lat_value.GetLabel())
-        lon = float(self.label_home_lon_value.GetLabel())
-        alt = float(self.label_home_alt_value.GetLabel())
+        lat = self.home_lat
+        lon = self.home_lon
+        alt = self.home_alt
         self.event_queue.put(MissionEditorEvent(me_event.MEE_WRITE_WP_NUM,
                                                 num=0,cmd_id=16,p1=0.0,p2=0.0,p3=0.0,p4=0.0,
                                                 lat=lat,lon=lon,alt=alt,frame=0))
@@ -801,81 +722,27 @@ class MissionEditorFrame(wx.Frame):
     def on_mission_grid_cell_changed(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
         self.set_modified_state(True)
         event.Skip()
-    def on_wp_radius_changed(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
-        #change text red
-        self.text_ctrl_wp_radius.SetForegroundColour(wx.Colour(255, 0, 0))
-        event.Skip()
-    def on_wp_radius_enter(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
-        try:
-            wp_radius = float(self.text_ctrl_wp_radius.GetValue())
-        except Exception as e:
-            print(str(e))
-            return
+    def on_wp_radius_changed(self, event):  # Widget removed
+        pass
+    def on_wp_radius_enter(self, event):  # Widget removed
+        pass
 
-        #text back to black
-        self.text_ctrl_wp_radius.SetForegroundColour(wx.Colour(0, 0, 0))
+    def send_loiter_rad_msg(self):  # Widget removed
+        pass
 
-        self.event_queue_lock.acquire()
-        self.event_queue.put(MissionEditorEvent(me_event.MEE_SET_WP_RAD,
-            rad=wp_radius))
-        self.event_queue_lock.release()
+    def on_loiter_rad_enter(self, event):  # Widget removed
+        pass
 
-        event.Skip()
+    def on_loiter_rad_change(self, event):  # Widget removed
+        pass
+    def on_loiter_dir_cb_change(self, event):  # Widget removed
+        pass
 
-    def send_loiter_rad_msg(self):
-        try:
-            loit_radius = float(self.text_ctrl_loiter_radius.GetValue())
-        except Exception as e:
-            print(str(e))
-            return
+    def on_wp_default_alt_enter(self, event):  # Widget removed
+        pass
 
-        if (not self.checkbox_loiter_dir.IsChecked()):
-            loit_radius = loit_radius * -1.0
-
-        #text back to black
-        self.text_ctrl_loiter_radius.SetForegroundColour(wx.Colour(0, 0, 0))
-
-        self.event_queue_lock.acquire()
-        self.event_queue.put(MissionEditorEvent(me_event.MEE_SET_LOIT_RAD,
-            rad=loit_radius))
-        self.event_queue_lock.release()
-
-    def on_loiter_rad_enter(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
-        self.send_loiter_rad_msg()
-
-        event.Skip()
-
-    def on_loiter_rad_change(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
-        #change text red
-        self.text_ctrl_loiter_radius.SetForegroundColour(wx.Colour(255, 0, 0))
-
-        event.Skip()
-    def on_loiter_dir_cb_change(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
-        self.send_loiter_rad_msg()
-        event.Skip()
-
-    def on_wp_default_alt_enter(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
-        try:
-            def_alt = float(self.text_ctrl_wp_default_alt.GetValue())
-        except Exception as e:
-            print(str(e))
-            return
-
-        #text back to black
-        self.text_ctrl_wp_default_alt.SetForegroundColour(wx.Colour(0, 0, 0))
-
-        self.event_queue_lock.acquire()
-        self.event_queue.put(MissionEditorEvent(me_event.MEE_SET_WP_DEFAULT_ALT,
-            alt=def_alt))
-        self.event_queue_lock.release()
-
-        event.Skip()
-
-    def on_wp_default_alt_change(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
-        #change text red
-        self.text_ctrl_wp_default_alt.SetForegroundColour(wx.Colour(255, 0, 0))
-
-        event.Skip()
+    def on_wp_default_alt_change(self, event):  # Widget removed
+        pass
 
     def fix_jumps(self, row_selected, delta):
         '''fix up jumps when we add/remove rows'''
@@ -906,7 +773,7 @@ class MissionEditorFrame(wx.Frame):
 
     def set_grad_dist(self):
         '''fix up distance and gradient when changing cell values'''
-        home_def_alt = float(self.label_home_alt_value.GetLabel())
+        home_def_alt = self.home_alt
         numrows = self.grid_mission.GetNumberRows()
         for row in range(1,numrows):
             command = self.grid_mission.GetCellValue(row, ME_COMMAND_COL)
@@ -951,7 +818,7 @@ class MissionEditorFrame(wx.Frame):
             
     def set_agl(self):
         '''update agl altitude when changing cell values'''
-        home_def_alt = float(self.label_home_alt_value.GetLabel())
+        home_def_alt = self.home_alt
         numrows = self.grid_mission.GetNumberRows()
         for row in range(0,numrows):
             command = self.grid_mission.GetCellValue(row, ME_COMMAND_COL)
