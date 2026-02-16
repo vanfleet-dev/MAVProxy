@@ -48,15 +48,14 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console.set_status('SYSID', 'SYSID: ', row=0, fg='blue')
         mpstate.console.set_status('ARM', 'ARM: ARM', fg='grey', row=0)
         mpstate.console.set_status('FLT TIME', 'FLT TIME: --', row=0)
-        mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0)
-        mpstate.console.set_status('GPS2', 'GPS2: ', fg='red', row=0)
-        mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=0)
+        mpstate.console.set_status('GPS', 'GPS: (--)', fg='red', row=2)
+        mpstate.console.set_status('GPS2', 'GPS2: (--) ', fg='red', row=2)
+        mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=3)
         mpstate.console.set_status('ALT', 'ALT: ---', row=1)
         mpstate.console.set_status('AGL', 'AGL: ---', row=1)
         mpstate.console.set_status('ARSPD', 'ARSPD: --', row=1)
         mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=1)
         mpstate.console.set_status('WP', 'WP: --', row=2)
-        mpstate.console.set_status('DIST', 'DIST: ---', row=2)
         mpstate.console.set_status('BRG', 'BRG: ---', row=2)
         mpstate.console.set_status('HDG', 'HDG: ---', row=2)
         mpstate.console.set_status('THR', 'THR: ---', row=3)
@@ -329,24 +328,16 @@ class MinMinConsoleModule(mp_module.MPModule):
             type = msg.get_type()
             if type == 'GPS_RAW_INT':
                 field = 'GPS'
-                prefix = 'GPS:'
+                prefix = 'GPS'
             else:
                 field = 'GPS2'
                 prefix = 'GPS2'
             nsats = msg.satellites_visible
             fix_type = msg.fix_type
-            yaw = msg.yaw
             if fix_type >= 3:
-                gnss_heading_status = ''
-                if yaw > 0 and yaw < 65535:
-                    # GNSS heading
-                    gnss_heading_status = ' H'
-                elif yaw == 65535:
-                    # GNSS heading but no valid data
-                    gnss_heading_status = ' h'
-                self.console.set_status(field, '%s OK%s (%u)%s' % (prefix, fix_type, nsats, gnss_heading_status), fg=green)
+                self.console.set_status(field, '%s: (%u)' % (prefix, nsats), fg=green, row=2)
             else:
-                self.console.set_status(field, '%s %u (%u)' % (prefix, fix_type, nsats), fg='red')
+                self.console.set_status(field, '%s: (%u)' % (prefix, nsats), fg='red', row=2)
             if type == 'GPS_RAW_INT':
                 vfr_hud_heading = master.field('VFR_HUD', 'heading', None)
                 if vfr_hud_heading is None:
@@ -357,13 +348,11 @@ class MinMinConsoleModule(mp_module.MPModule):
                             vfr_hud_heading = None
                         else:
                             vfr_hud_heading /= 100
-                gps_heading = int(msg.cog * 0.01)
                 if vfr_hud_heading is None:
                     vfr_hud_heading = '---'
                 else:
                     vfr_hud_heading = '%3u' % vfr_hud_heading
-                self.console.set_status('HDG', 'HDG: %s/%3u' %
-                                        (vfr_hud_heading, gps_heading), row=2)
+                self.console.set_status('HDG', 'HDG: %s' % vfr_hud_heading, row=2)
 
     def handle_vfr_hud(self, msg):
             master = self.master
@@ -437,7 +426,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                 fg = green
             else:
                 fg = 'red'
-            self.console.set_status('VCC', 'VCC: %.2f' % (msg.Vcc * 0.001), fg=fg)
+            self.console.set_status('VCC', 'VCC: %.2f' % (msg.Vcc * 0.001), fg=fg, row=3)
             if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_CHANGED:
                 fg = 'red'
             else:
@@ -453,7 +442,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                 status += 'O1'
             if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_PERIPH_HIPOWER_OVERCURRENT:
                 status += 'O2'
-            self.console.set_status('PWR', status, fg=fg)
+            self.console.set_status('PWR', status, fg=fg, row=3)
 
     # this method is called on receipt of any HEARTBEAT so long as it
     # comes from the device we are interested in
@@ -548,11 +537,9 @@ class MinMinConsoleModule(mp_module.MPModule):
                 else:
                     self.speed = 0.98*self.speed + 0.02*airspeed
     def handle_nav_controller_output(self, msg):
-            self.console.set_status('DIST', 'DIST: %s' % self.dist_string(msg.wp_dist), row=2)
             self.console.set_status('BRG', 'BRG: %u' % msg.target_bearing, row=2)
 
     def handle_high_latency2(self, msg):
-            self.console.set_status('DIST', 'DIST: %s' % self.dist_string(msg.target_distance * 10), row=2)
             # The -180 here for for consistency with NAV_CONTROLLER_OUTPUT (-180->180), whereas HIGH_LATENCY2 is (0->360)
             self.console.set_status('BRG', 'BRG: %u' % ((msg.target_heading * 2) - 180), row=2)
             self.console.set_status('ALT', 'ALT: %s' % self.height_string(msg.altitude - self.module('terrain').ElevationModel.GetElevation(msg.latitude / 1E7, msg.longitude / 1E7)), row=1)
