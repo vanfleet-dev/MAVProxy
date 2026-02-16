@@ -47,21 +47,22 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console.set_status('Mode', 'UNKNOWN', row=0, fg='blue')
         mpstate.console.set_status('SysID', '', row=0, fg='blue')
         mpstate.console.set_status('ARM', 'ARM', fg='grey', row=0)
+        mpstate.console.set_status('FLT TIME', 'FLT TIME --', row=0)
         mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0)
         mpstate.console.set_status('GPS2', '', fg='red', row=0)
         mpstate.console.set_status('Vcc', 'Vcc: --', fg='red', row=0)
-        mpstate.console.set_status('Heading', 'Hdg ---/---', row=2)
         mpstate.console.set_status('Alt', 'Alt ---', row=2)
         mpstate.console.set_status('AGL', 'AGL ---/---', row=2)
         mpstate.console.set_status('ARSPD', 'ARSPD --', row=2)
         mpstate.console.set_status('GNDSPD', 'GNDSPD --', row=2)
-        mpstate.console.set_status('Thr', 'Thr ---', row=2)
-        mpstate.console.set_status('Roll', 'Roll ---', row=2)
-        mpstate.console.set_status('Pitch', 'Pitch ---', row=2)
         mpstate.console.set_status('WP', 'WP --', row=3)
         mpstate.console.set_status('DIST', 'DIST ---', row=3)
         mpstate.console.set_status('BRG', 'BRG ---', row=3)
-        mpstate.console.set_status('FLT TIME', 'FLT TIME --', row=3)
+        mpstate.console.set_status('HDG', 'HDG ---', row=3)
+        mpstate.console.set_status('THR', 'THR ---', row=4)
+        mpstate.console.set_status('ROLL', 'ROLL ---', row=4)
+        mpstate.console.set_status('PITCH', 'PITCH ---', row=4)
+        mpstate.console.set_status('YAW', 'YAW ---', row=4)
 
         self.console_settings = mp_settings.MPSettings([
             ('debug_level', int, 0),
@@ -361,7 +362,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                     vfr_hud_heading = '---'
                 else:
                     vfr_hud_heading = '%3u' % vfr_hud_heading
-                self.console.set_status('Heading', 'Hdg %s/%3u' %
+                self.console.set_status('HDG', 'HDG %s/%3u' %
                                         (vfr_hud_heading, gps_heading))
 
     def handle_vfr_hud(self, msg):
@@ -415,7 +416,7 @@ class MinMinConsoleModule(mp_module.MPModule):
             self.console.set_status('Alt', 'Alt %s' % self.height_string(rel_alt))
             self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed))
             self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed))
-            self.console.set_status('Thr', 'Thr %u' % msg.throttle)
+            self.console.set_status('THR', 'THR %u' % msg.throttle)
 
             sysid = msg.get_srcSystem()
             if (sysid not in self.flight_information or
@@ -441,8 +442,9 @@ class MinMinConsoleModule(mp_module.MPModule):
                 self.console.set_status('FLT TIME', 'FLT TIME %u:%02u' % (int(self.total_time)/60, int(self.total_time)%60))
 
     def handle_attitude(self, msg):
-            self.console.set_status('Roll', 'Roll %u' % math.degrees(msg.roll))
-            self.console.set_status('Pitch', 'Pitch %u' % math.degrees(msg.pitch))
+            self.console.set_status('ROLL', 'ROLL %u' % math.degrees(msg.roll))
+            self.console.set_status('PITCH', 'PITCH %u' % math.degrees(msg.pitch))
+            self.console.set_status('YAW', 'YAW %u' % math.degrees(msg.yaw))
 
     def handle_sys_status(self, msg):
             self.last_sys_status_health = msg.onboard_control_sensors_health
@@ -578,8 +580,8 @@ class MinMinConsoleModule(mp_module.MPModule):
             self.console.set_status('Alt', 'Alt %s' % self.height_string(msg.altitude - self.module('terrain').ElevationModel.GetElevation(msg.latitude / 1E7, msg.longitude / 1E7)))
             self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed / 5))
             self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed / 5))
-            self.console.set_status('Thr', 'Thr %u' % msg.throttle)
-            self.console.set_status('Heading', 'Hdg %s/---' % (msg.heading * 2))
+            self.console.set_status('THR', 'THR %u' % msg.throttle)
+            self.console.set_status('HDG', 'HDG %s' % (msg.heading * 2))
             self.console.set_status('WP', 'WP %u/--' % (msg.wp_num))
             
             gps_failed = ((msg.failure_flags & mavutil.mavlink.HL_FAILURE_FLAG_GPS) == mavutil.mavlink.HL_FAILURE_FLAG_GPS)
