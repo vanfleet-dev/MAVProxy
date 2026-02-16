@@ -362,7 +362,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                     vfr_hud_heading = '---'
                 else:
                     vfr_hud_heading = '%3u' % vfr_hud_heading
-                self.console.set_status('HDG', 'HDG %s/%3u' %
+                self.console.set_status('HDG', 'HDG: %s/%3u' %
                                         (vfr_hud_heading, gps_heading))
 
     def handle_vfr_hud(self, msg):
@@ -412,11 +412,11 @@ class MinMinConsoleModule(mp_module.MPModule):
                     vehicle_agl = '---'
                 else:
                     vehicle_agl = self.height_string(vehicle_agl)
-                self.console.set_status('AGL', 'AGL %s/%s' % (agl_alt, vehicle_agl))
+                self.console.set_status('AGL', 'AGL: %s/%s' % (agl_alt, vehicle_agl))
             self.console.set_status('ALT', 'ALT: %s' % self.height_string(rel_alt))
-            self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed))
-            self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed))
-            self.console.set_status('THR', 'THR %u' % msg.throttle)
+            self.console.set_status('ARSPD', 'ARSPD: %s' % self.speed_string(msg.airspeed))
+            self.console.set_status('GNDSPD', 'GNDSPD: %s' % self.speed_string(msg.groundspeed))
+            self.console.set_status('THR', 'THR: %u' % msg.throttle)
 
             sysid = msg.get_srcSystem()
             if (sysid not in self.flight_information or
@@ -442,9 +442,9 @@ class MinMinConsoleModule(mp_module.MPModule):
                 self.console.set_status('FLT TIME', 'FLT TIME %u:%02u' % (int(self.total_time)/60, int(self.total_time)%60))
 
     def handle_attitude(self, msg):
-            self.console.set_status('ROLL', 'ROLL %u' % math.degrees(msg.roll))
-            self.console.set_status('PITCH', 'PITCH %u' % math.degrees(msg.pitch))
-            self.console.set_status('YAW', 'YAW %u' % math.degrees(msg.yaw))
+            self.console.set_status('ROLL', 'ROLL: %u' % math.degrees(msg.roll))
+            self.console.set_status('PITCH', 'PITCH: %u' % math.degrees(msg.pitch))
+            self.console.set_status('YAW', 'YAW: %u' % math.degrees(msg.yaw))
 
     def handle_sys_status(self, msg):
             self.last_sys_status_health = msg.onboard_control_sensors_health
@@ -560,7 +560,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                 wpmax = "/%u" % wpmax
             else:
                 wpmax = ""
-            self.console.set_status('WP', 'WP %u%s' % (msg.seq, wpmax))
+            self.console.set_status('WP', 'WP: %u%s' % (msg.seq, wpmax))
             lat = master.field('GLOBAL_POSITION_INT', 'lat', 0) * 1.0e-7
             lng = master.field('GLOBAL_POSITION_INT', 'lon', 0) * 1.0e-7
             if lat != 0 and lng != 0:
@@ -570,19 +570,19 @@ class MinMinConsoleModule(mp_module.MPModule):
                 else:
                     self.speed = 0.98*self.speed + 0.02*airspeed
     def handle_nav_controller_output(self, msg):
-            self.console.set_status('DIST', 'DIST %s' % self.dist_string(msg.wp_dist))
-            self.console.set_status('BRG', 'BRG %u' % msg.target_bearing)
+            self.console.set_status('DIST', 'DIST: %s' % self.dist_string(msg.wp_dist))
+            self.console.set_status('BRG', 'BRG: %u' % msg.target_bearing)
 
     def handle_high_latency2(self, msg):
-            self.console.set_status('DIST', 'DIST %s' % self.dist_string(msg.target_distance * 10))
+            self.console.set_status('DIST', 'DIST: %s' % self.dist_string(msg.target_distance * 10))
             # The -180 here for for consistency with NAV_CONTROLLER_OUTPUT (-180->180), whereas HIGH_LATENCY2 is (0->360)
-            self.console.set_status('BRG', 'BRG %u' % ((msg.target_heading * 2) - 180))
+            self.console.set_status('BRG', 'BRG: %u' % ((msg.target_heading * 2) - 180))
             self.console.set_status('ALT', 'ALT: %s' % self.height_string(msg.altitude - self.module('terrain').ElevationModel.GetElevation(msg.latitude / 1E7, msg.longitude / 1E7)))
-            self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed / 5))
-            self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed / 5))
-            self.console.set_status('THR', 'THR %u' % msg.throttle)
-            self.console.set_status('HDG', 'HDG %s' % (msg.heading * 2))
-            self.console.set_status('WP', 'WP %u/--' % (msg.wp_num))
+            self.console.set_status('ARSPD', 'ARSPD: %s' % self.speed_string(msg.airspeed / 5))
+            self.console.set_status('GNDSPD', 'GNDSPD: %s' % self.speed_string(msg.groundspeed / 5))
+            self.console.set_status('THR', 'THR: %u' % msg.throttle)
+            self.console.set_status('HDG', 'HDG: %s' % (msg.heading * 2))
+            self.console.set_status('WP', 'WP: %u/--' % (msg.wp_num))
             
             gps_failed = ((msg.failure_flags & mavutil.mavlink.HL_FAILURE_FLAG_GPS) == mavutil.mavlink.HL_FAILURE_FLAG_GPS)
             if gps_failed:
