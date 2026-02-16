@@ -445,60 +445,6 @@ class MinMinConsoleModule(mp_module.MPModule):
             self.console.set_status('Pitch', 'Pitch %u' % math.degrees(msg.pitch))
 
     def handle_sys_status(self, msg):
-            master = self.master
-            sensors = { 'AS'   : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE,
-                        'MAG'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_MAG,
-                        'INS'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL | mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO,
-                        'AHRS' : mavutil.mavlink.MAV_SYS_STATUS_AHRS,
-                        'RC'   : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_RC_RECEIVER,
-                        'TERR' : mavutil.mavlink.MAV_SYS_STATUS_TERRAIN,
-                        'RNG'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_LASER_POSITION,
-                        'LOG'  : mavutil.mavlink.MAV_SYS_STATUS_LOGGING,
-                        'PRX'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_PROXIMITY,
-                        'PRE'  : mavutil.mavlink.MAV_SYS_STATUS_PREARM_CHECK,
-                        'FLO'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW,
-            }
-            hide_if_not_present = set(['PRE', 'PRX', 'FLO'])
-            for s in sensors.keys():
-                bits = sensors[s]
-                present = ((msg.onboard_control_sensors_present & bits) == bits)
-                enabled = ((msg.onboard_control_sensors_enabled & bits) == bits)
-                healthy = ((msg.onboard_control_sensors_health & bits) == bits)
-                if not present and s in hide_if_not_present:
-                    continue
-                if not present:
-                    fg = 'black'
-                elif not enabled:
-                    fg = 'grey'
-                elif not healthy:
-                    fg = 'red'
-                else:
-                    fg = green
-                # for terrain show yellow if still loading
-                if s == 'TERR' and fg == green and master.field('TERRAIN_REPORT', 'pending', 0) != 0:
-                    fg = 'yellow'
-                self.console.set_status(s, s, fg=fg)
-            announce_unhealthy = {
-                'RC': 'RC',
-                'PRE': 'pre-arm',
-            }
-            for s in announce_unhealthy.keys():
-                bits = sensors[s]
-                enabled = ((msg.onboard_control_sensors_enabled & bits) == bits)
-                healthy = ((msg.onboard_control_sensors_health & bits) == bits)
-                was_healthy = ((self.last_sys_status_health & bits) == bits)
-                if enabled and not healthy and was_healthy:
-                    self.say("%s fail" % announce_unhealthy[s])
-            announce_healthy = {
-                'PRE': 'pre-arm',
-            }
-            for s in announce_healthy.keys():
-                bits = sensors[s]
-                enabled = ((msg.onboard_control_sensors_enabled & bits) == bits)
-                healthy = ((msg.onboard_control_sensors_health & bits) == bits)
-                was_healthy = ((self.last_sys_status_health & bits) == bits)
-                if enabled and healthy and not was_healthy:
-                    self.say("%s good" % announce_healthy[s])
             self.last_sys_status_health = msg.onboard_control_sensors_health
 
             if ((msg.onboard_control_sensors_enabled & mavutil.mavlink.MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS) == 0):
@@ -528,7 +474,6 @@ class MinMinConsoleModule(mp_module.MPModule):
             if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_PERIPH_HIPOWER_OVERCURRENT:
                 status += 'O2'
             self.console.set_status('PWR', status, fg=fg)
-            self.console.set_status('Srv', 'Srv %.2f' % (msg.Vservo*0.001), fg=green)
 
     # this method is called on receipt of any HEARTBEAT so long as it
     # comes from the device we are interested in
@@ -623,13 +568,13 @@ class MinMinConsoleModule(mp_module.MPModule):
                 else:
                     self.speed = 0.98*self.speed + 0.02*airspeed
     def handle_nav_controller_output(self, msg):
-            self.console.set_status('DIST', 'Distance %s' % self.dist_string(msg.wp_dist))
-            self.console.set_status('BRG', 'Bearing %u' % msg.target_bearing)
+            self.console.set_status('DIST', '%s' % self.dist_string(msg.wp_dist))
+            self.console.set_status('BRG', '%u' % msg.target_bearing)
 
     def handle_high_latency2(self, msg):
-            self.console.set_status('DIST', 'Distance %s' % self.dist_string(msg.target_distance * 10))
+            self.console.set_status('DIST', '%s' % self.dist_string(msg.target_distance * 10))
             # The -180 here for for consistency with NAV_CONTROLLER_OUTPUT (-180->180), whereas HIGH_LATENCY2 is (0->360)
-            self.console.set_status('BRG', 'Bearing %u' % ((msg.target_heading * 2) - 180))
+            self.console.set_status('BRG', '%u' % ((msg.target_heading * 2) - 180))
             self.console.set_status('Alt', 'Alt %s' % self.height_string(msg.altitude - self.module('terrain').ElevationModel.GetElevation(msg.latitude / 1E7, msg.longitude / 1E7)))
             self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed / 5))
             self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed / 5))
@@ -637,30 +582,6 @@ class MinMinConsoleModule(mp_module.MPModule):
             self.console.set_status('Heading', 'Hdg %s/---' % (msg.heading * 2))
             self.console.set_status('WP', 'WP %u/--' % (msg.wp_num))
             
-            #re-map sensors
-            sensors = { 'AS'   : mavutil.mavlink.HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE,
-                        'MAG'  : mavutil.mavlink.HL_FAILURE_FLAG_3D_MAG,
-                        'INS'  : mavutil.mavlink.HL_FAILURE_FLAG_3D_ACCEL | mavutil.mavlink.HL_FAILURE_FLAG_3D_GYRO,
-                        'AHRS' : mavutil.mavlink.HL_FAILURE_FLAG_ESTIMATOR,
-                        'RC'   : mavutil.mavlink.HL_FAILURE_FLAG_RC_RECEIVER,
-                        'TERR' : mavutil.mavlink.HL_FAILURE_FLAG_TERRAIN
-            }
-            for s in sensors.keys():
-                bits = sensors[s]
-                failed = ((msg.failure_flags & bits) == bits)
-                if failed:
-                    fg = 'red'
-                else:
-                    fg = green
-                self.console.set_status(s, s, fg=fg)
-                
-            # do the remaining non-standard system mappings
-            fence_failed = ((msg.failure_flags & mavutil.mavlink.HL_FAILURE_FLAG_GEOFENCE) == mavutil.mavlink.HL_FAILURE_FLAG_GEOFENCE)
-            if fence_failed:
-                fg = 'red'
-            else:
-                fg = green
-            self.console.set_status('Fence', 'FEN', fg=fg)
             gps_failed = ((msg.failure_flags & mavutil.mavlink.HL_FAILURE_FLAG_GPS) == mavutil.mavlink.HL_FAILURE_FLAG_GPS)
             if gps_failed:
                 self.console.set_status('GPS', 'GPS FAILED', fg='red')
