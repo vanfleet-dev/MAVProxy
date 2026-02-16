@@ -51,7 +51,7 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console.set_status('GPS', 'GPS: (--)', fg='red', row=2)
         mpstate.console.set_status('GPS2', 'GPS2: (--) ', fg='red', row=2)
         mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=3)
-        mpstate.console.set_status('PWR', 'PWR: --', fg='green', row=3)
+        mpstate.console.set_status('AMP', 'AMP: --', fg='green', row=3)
         mpstate.console.set_status('THR', 'THR: ---', row=3)
         mpstate.console.set_status('ROLL', 'ROLL: ---', row=3)
         mpstate.console.set_status('PITCH', 'PITCH: ---', row=3)
@@ -421,22 +421,15 @@ class MinMinConsoleModule(mp_module.MPModule):
             else:
                 fg = 'red'
             self.console.set_status('VCC', 'VCC: %.2f' % (msg.Vcc * 0.001), fg=fg, row=3)
-            if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_CHANGED:
-                fg = 'red'
-            else:
+
+    def handle_battery_status(self, msg):
+            # current_battery is in centi-amps, convert to amps
+            if msg.current_battery != 65535:
+                current = msg.current_battery / 100.0
                 fg = green
-            status = 'PWR:'
-            if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_USB_CONNECTED:
-                status += 'U'
-            if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_BRICK_VALID:
-                status += 'B'
-            if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_SERVO_VALID:
-                status += 'S'
-            if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_PERIPH_OVERCURRENT:
-                status += 'O1'
-            if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_PERIPH_HIPOWER_OVERCURRENT:
-                status += 'O2'
-            self.console.set_status('PWR', status, fg=fg, row=3)
+                self.console.set_status('AMP', 'AMP: %.1f' % current, fg=fg, row=3)
+            else:
+                self.console.set_status('AMP', 'AMP: --', fg='red', row=3)
 
     # this method is called on receipt of any HEARTBEAT so long as it
     # comes from the device we are interested in
@@ -548,11 +541,6 @@ class MinMinConsoleModule(mp_module.MPModule):
                 self.console.set_status('GPS', 'GPS FAILED', fg='red')
             else:
                 self.console.set_status('GPS', 'GPS OK', fg=green)
-            batt_failed = ((msg.failure_flags & mavutil.mavlink.HL_FAILURE_FLAG_GPS) == mavutil.mavlink.HL_FAILURE_FLAG_BATTERY)
-            if batt_failed:
-                self.console.set_status('PWR', 'PWR FAILED', fg='red')
-            else:
-                self.console.set_status('PWR', 'PWR OK', fg=green)
 
     def handle_flight_information(self, msg):
         sysid = msg.get_srcSystem()
@@ -673,6 +661,9 @@ class MinMinConsoleModule(mp_module.MPModule):
 
         elif type == 'FLIGHT_INFORMATION':
             self.handle_flight_information(msg)
+
+        elif type == 'BATTERY_STATUS':
+            self.handle_battery_status(msg)
 
         elif type == 'COMMAND_ACK':
             self.handle_command_ack(msg)
