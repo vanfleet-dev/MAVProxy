@@ -51,6 +51,7 @@ class MultiStatusModule(mp_module.MPModule):
                 'mode': 'UNKNOWN',
                 'alt': 0.0,
                 'airspeed': 0.0,
+                'throttle': 0,
                 'bat1_voltage': 0.0,
                 'bat1_remaining': -1,
                 'bat2_voltage': 0.0,
@@ -80,6 +81,7 @@ class MultiStatusModule(mp_module.MPModule):
                 
         elif msg_type == 'VFR_HUD':
             self.vehicles[sysid]['airspeed'] = msg.airspeed
+            self.vehicles[sysid]['throttle'] = msg.throttle
             
         elif msg_type == 'SYS_STATUS':
             # Convert mV to V for battery 1
