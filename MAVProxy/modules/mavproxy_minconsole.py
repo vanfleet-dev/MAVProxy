@@ -45,7 +45,7 @@ class MinMinConsoleModule(mp_module.MPModule):
 
         # setup some default status information
         mpstate.console.set_status('Mode', 'Mode: UNKNOWN', row=0, fg='blue')
-        mpstate.console.set_status('SysID', 'SysID: ', row=0, fg='blue')
+        mpstate.console.set_status('SYSID', 'SYSID: ', row=0, fg='blue')
         mpstate.console.set_status('ARM', 'ARM: ARM', fg='grey', row=0)
         mpstate.console.set_status('FLT TIME', 'FLT TIME: --', row=0)
         mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0)
@@ -467,7 +467,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                 fmode = self.settings.vehicle_name + ':' + fmode
             self.console.set_status('Mode', '%s' % fmode, fg='blue')
             if len(self.vehicle_list) > 1:
-                self.console.set_status('SysID', 'Sys:%u' % sysid, fg='blue')
+                self.console.set_status('SYSID', 'SYSID:%u' % sysid, fg='blue')
             if self.master.motors_armed():
                 arm_colour = green
             else:
