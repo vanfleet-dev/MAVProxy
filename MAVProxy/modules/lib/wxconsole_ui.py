@@ -125,11 +125,6 @@ class ConsoleFrame(wx.Frame):
                     self.status[obj.row].Add(value, border=5)
                     self.status[obj.row].AddSpacer(20)
                     self.values[obj.name] = value
-                    # Apply custom font size if specified
-                    if obj.font_size is not None:
-                        font = value.GetFont()
-                        font.SetPointSize(obj.font_size)
-                        value.SetFont(font)
                 value = self.values[obj.name]
                 value.SetForegroundColour(obj.fg)
                 value.SetBackgroundColour(obj.bg)
