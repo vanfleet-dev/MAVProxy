@@ -157,9 +157,11 @@ class VehicleStatusFrame(wx.Frame):
             self.grid.SetCellAlignment(row, 7, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             # Set LINK color based on status
             if link_status == 'OK':
-                self.grid.SetCellBackgroundColour(row, 7, wx.Colour(200, 255, 200))  # Green
+                self.grid.SetCellBackgroundColour(row, 7, wx.Colour(144, 238, 144))  # Light green
+                self.grid.SetCellTextColour(row, 7, wx.Colour(0, 100, 0))  # Dark green text
             else:
-                self.grid.SetCellBackgroundColour(row, 7, wx.Colour(255, 200, 200))  # Red
+                self.grid.SetCellBackgroundColour(row, 7, wx.Colour(255, 180, 180))  # Light red
+                self.grid.SetCellTextColour(row, 7, wx.Colour(139, 0, 0))  # Dark red text
             
             # Set row color based on status
             if v.get('status') == 'stale':
