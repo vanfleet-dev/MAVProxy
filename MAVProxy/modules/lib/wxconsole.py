@@ -71,10 +71,10 @@ class MessageConsole(textconsole.SimpleConsole):
         except Exception:
             pass
 
-    def set_status(self, name, text='', row=0, fg='black', bg='white'):
+    def set_status(self, name, text='', row=0, fg='black', bg='white', font_size=None):
         '''set a status value'''
         if self.is_alive():
-            self.parent_pipe_send.send(Value(name, text, row, fg, bg))
+            self.parent_pipe_send.send(Value(name, text, row, fg, bg, font_size))
 
     def set_menu(self, menu, callback):
         if self.is_alive():

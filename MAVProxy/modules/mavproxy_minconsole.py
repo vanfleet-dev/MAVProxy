@@ -44,25 +44,26 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console = wxconsole.MessageConsole(title='Console')
 
         # setup some default status information
-        mpstate.console.set_status('Mode', 'Mode: UNKNOWN', row=0, fg='blue')
-        mpstate.console.set_status('SYSID', 'SYSID: ', row=0, fg='blue')
-        mpstate.console.set_status('ARM', 'ARM: ARM', fg='grey', row=0)
-        mpstate.console.set_status('FLT TIME', 'FLT TIME: --', row=0)
-        mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0)
-        mpstate.console.set_status('GPS2', 'GPS2: ', fg='red', row=0)
-        mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=0)
-        mpstate.console.set_status('ALT', 'ALT: ---', row=2)
-        mpstate.console.set_status('AGL', 'AGL: ---', row=2)
-        mpstate.console.set_status('ARSPD', 'ARSPD: --', row=2)
-        mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=2)
-        mpstate.console.set_status('WP', 'WP: --', row=3)
-        mpstate.console.set_status('DIST', 'DIST: ---', row=3)
-        mpstate.console.set_status('BRG', 'BRG: ---', row=3)
-        mpstate.console.set_status('HDG', 'HDG: ---', row=3)
-        mpstate.console.set_status('THR', 'THR: ---', row=4)
-        mpstate.console.set_status('ROLL', 'ROLL: ---', row=4)
-        mpstate.console.set_status('PITCH', 'PITCH: ---', row=4)
-        mpstate.console.set_status('YAW', 'YAW: ---', row=4)
+        self.font_size = 9
+        mpstate.console.set_status('Mode', 'Mode: UNKNOWN', row=0, fg='blue', font_size=self.font_size)
+        mpstate.console.set_status('SYSID', 'SYSID: ', row=0, fg='blue', font_size=self.font_size)
+        mpstate.console.set_status('ARM', 'ARM: ARM', fg='grey', row=0, font_size=self.font_size)
+        mpstate.console.set_status('FLT TIME', 'FLT TIME: --', row=0, font_size=self.font_size)
+        mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0, font_size=self.font_size)
+        mpstate.console.set_status('GPS2', 'GPS2: ', fg='red', row=0, font_size=self.font_size)
+        mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=0, font_size=self.font_size)
+        mpstate.console.set_status('ALT', 'ALT: ---', row=2, font_size=self.font_size)
+        mpstate.console.set_status('AGL', 'AGL: ---', row=2, font_size=self.font_size)
+        mpstate.console.set_status('ARSPD', 'ARSPD: --', row=2, font_size=self.font_size)
+        mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=2, font_size=self.font_size)
+        mpstate.console.set_status('WP', 'WP: --', row=3, font_size=self.font_size)
+        mpstate.console.set_status('DIST', 'DIST: ---', row=3, font_size=self.font_size)
+        mpstate.console.set_status('BRG', 'BRG: ---', row=3, font_size=self.font_size)
+        mpstate.console.set_status('HDG', 'HDG: ---', row=3, font_size=self.font_size)
+        mpstate.console.set_status('THR', 'THR: ---', row=4, font_size=self.font_size)
+        mpstate.console.set_status('ROLL', 'ROLL: ---', row=4, font_size=self.font_size)
+        mpstate.console.set_status('PITCH', 'PITCH: ---', row=4, font_size=self.font_size)
+        mpstate.console.set_status('YAW', 'YAW: ---', row=4, font_size=self.font_size)
 
         self.console_settings = mp_settings.MPSettings([
             ('debug_level', int, 0),
@@ -479,7 +480,7 @@ class MinMinConsoleModule(mp_module.MPModule):
             self.console.set_status('ARM', armstring, fg=arm_colour)
             if self.max_link_num != len(self.mpstate.mav_master):
                 for i in range(self.max_link_num):
-                    self.console.set_status('LINK%u'%(i+1), '', row=1)
+                    self.console.set_status('LINK%u'%(i+1), '', row=1, font_size=self.font_size)
                 self.max_link_num = len(self.mpstate.mav_master)
             for m in self.mpstate.mav_master:
                 if self.mpstate.settings.checkdelay:
@@ -526,7 +527,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                     if linkdelay > 1 and fg == 'dark green':
                         fg = 'orange'
 
-                self.console.set_status('LINK%u'%m.linknum, linkline, row=1, fg=fg)
+                self.console.set_status('LINK%u'%m.linknum, linkline, row=1, fg=fg, font_size=self.font_size)
 
     def handle_mission_current(self, msg):
             master = self.master

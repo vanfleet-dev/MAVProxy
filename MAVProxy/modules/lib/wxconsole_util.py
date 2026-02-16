@@ -7,9 +7,10 @@ class Text():
 
 class Value():
     '''a value for the status bar'''
-    def __init__(self, name, text, row=0, fg='black', bg='white'):
+    def __init__(self, name, text, row=0, fg='black', bg='white', font_size=None):
         self.name = name
         self.text = text
         self.row = row
         self.fg = fg
         self.bg = bg
+        self.font_size = font_size
