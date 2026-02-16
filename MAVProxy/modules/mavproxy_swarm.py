@@ -1,45 +1,28 @@
-import sys
-import json
+#!/usr/bin/env python3
+'''
+swarm module - Multi-vehicle guided control
+
+Commands:
+- swarm status               : Show all detected vehicles and their configured altitudes
+- swarm alt <sysid> <alt>    : Set altitude for a vehicle (e.g., "swarm alt 1 50")
+- swarm guided               : Send all configured vehicles to map click location
+- swarm clear                : Clear all configured altitudes
+'''
+
 import time
 from pymavlink import mavutil
-from pymavlink import mavwp
-from MAVProxy.modules.lib import mp_module, mp_settings, mp_util
-from MAVProxy.modules.mavproxy_rally import RallyModule
-from MAVProxy.modules.mavproxy_mode import ModeModule
-from MAVProxy.modules.lib import mission_item_protocol
+from MAVProxy.modules.lib import mp_module
 
 
-def get_vehicle_name(vehtype):
-    vehicle_names = {
-        mavutil.mavlink.MAV_TYPE_FIXED_WING: 'Plane',
-        mavutil.mavlink.MAV_TYPE_VTOL_DUOROTOR: 'Plane',
-        mavutil.mavlink.MAV_TYPE_VTOL_QUADROTOR: 'Plane',
-        mavutil.mavlink.MAV_TYPE_VTOL_TILTROTOR: 'Plane',
-        mavutil.mavlink.MAV_TYPE_GROUND_ROVER: 'Rover',
-        mavutil.mavlink.MAV_TYPE_SURFACE_BOAT: 'Boat',
-        mavutil.mavlink.MAV_TYPE_SUBMARINE: 'Sub',
-        mavutil.mavlink.MAV_TYPE_QUADROTOR: 'Copter',
-        mavutil.mavlink.MAV_TYPE_COAXIAL: 'Copter',
-        mavutil.mavlink.MAV_TYPE_HEXAROTOR: 'Copter',
-        mavutil.mavlink.MAV_TYPE_OCTOROTOR: 'Copter',
-        mavutil.mavlink.MAV_TYPE_TRICOPTER: 'Copter',
-        mavutil.mavlink.MAV_TYPE_DODECAROTOR: 'Copter',
-        mavutil.mavlink.MAV_TYPE_HELICOPTER: 'Heli',
-        mavutil.mavlink.MAV_TYPE_ANTENNA_TRACKER: 'Tracker',
-        mavutil.mavlink.MAV_TYPE_AIRSHIP: 'Blimp'
-    }
-    return vehicle_names.get(vehtype, f"UNKNOWN({vehtype})")
-
-class SwarmModule(mission_item_protocol.MissionItemProtocolModule):
+class SwarmModule(mp_module.MPModule):
     def __init__(self, mpstate):
         super(SwarmModule, self).__init__(mpstate, "swarm", "swarm module", multi_vehicle=True, public=True)
-        self.vehicleListing = []
-        self.takeoffalt = 100  # Default takeoff altitude in meters
-        self.separation_alt = 50  # Default separation altitude in meters
-        self.vehicleLastHB = {}
-        self.wploader_by_sysid = {}
-        self.vehParamsToGet = []
-        self.validVehicles = {
+        
+        self.vehicle_altitudes = {}  # {sysid: altitude}
+        self.detected_vehicles = set()  # Set of sysids seen via heartbeat
+        self.vehicle_last_hb = {}  # {sysid: last_heartbeat_time}
+        
+        self.valid_vehicles = {
             mavutil.mavlink.MAV_TYPE_FIXED_WING,
             mavutil.mavlink.MAV_TYPE_VTOL_DUOROTOR,
             mavutil.mavlink.MAV_TYPE_VTOL_QUADROTOR,
@@ -56,163 +39,130 @@ class SwarmModule(mission_item_protocol.MissionItemProtocolModule):
             mavutil.mavlink.MAV_TYPE_DODECAROTOR,
             mavutil.mavlink.MAV_TYPE_AIRSHIP
         }
-        self.add_command('swarm', self.cmd_swarm, "swarm control", [
-            "<status>", 
-            "takeoff <separation_alt>", 
-            "guided <lat> <lon> [<alt> <offset_z>]", 
-            "rally <lat> <lon> [<alt> <offset_z>]", 
-            "load <file_path>"
+        
+        self.add_command('swarm', self.cmd_swarm, "swarm multi-vehicle control", [
+            "status",
+            "alt",
+            "guided",
+            "clear"
         ])
-        global frame
-        self.rally_module = RallyModule(mpstate)
-        self.mode_module = ModeModule(mpstate)
 
-    def command_name(a):
-        '''command-line command name'''
-        return a
-    
-    @staticmethod
-    def loader_class():
-        return mavwp.MissionItemProtocol_Rally
-    
-    def itemstype(self):
-        '''returns description of items in the plural'''
-        return 'rally items'
-
-    def itemtype(self):
-        '''returns description of item'''
-        return 'rally item'
-    
     def cmd_swarm(self, args):
-        usage = "usage: swarm <status|takeoff <separation_alt>|guided <lat> <lon> [<alt> <offset_z>]|rally <lat> <lon> [<alt> <offset_z>]|load <file_path>>"
+        '''handle swarm commands'''
         if len(args) == 0:
-            print(usage)
-        elif args[0] == "status":
+            print("Usage: swarm <status|alt <sysid> <alt>|guided|clear>")
+            return
+            
+        cmd = args[0]
+        
+        if cmd == "status":
             self.print_status()
-        elif args[0] == "takeoff" and len(args) == 2:
+        elif cmd == "alt":
+            if len(args) != 3:
+                print("Usage: swarm alt <sysid> <altitude>")
+                return
             try:
-                self.separation_alt = int(args[1])
-                self.set_takeoff_altitude()
+                sysid = int(args[1])
+                altitude = float(args[2])
+                self.vehicle_altitudes[sysid] = altitude
+                print(f"Set vehicle {sysid} altitude to {altitude}m")
             except ValueError:
-                print("Invalid separation altitude. Please provide an integer value.")
-        elif args[0] == "guided" and (len(args) == 3 or len(args) == 5):
-            try:
-                lat, lon = float(args[1]), float(args[2])
-                alt = float(args[3]) if len(args) == 5 else None
-                offset_z = float(args[4]) if len(args) == 5 else None
-                self.send_guided_commands(lat, lon, alt, offset_z)
-            except ValueError:
-                print("Invalid guided command parameters. Please provide valid float values.")
-        elif args[0] == "rally" and (len(args) == 3 or len(args) == 5):
-            try:
-                lat, lon = float(args[1]), float(args[2])
-                alt = float(args[3]) if len(args) == 5 else None
-                offset_z = float(args[4]) if len(args) == 5 else None
-                self.send_rally_location(lat, lon, alt, offset_z)
-            except ValueError:
-                print("Invalid rally command parameters. Please provide valid float values.")
-        elif args[0] == "load" and len(args) == 2:
-            file_path = args[1]
-            self.load_swarm_configuration(file_path)
+                print("Invalid sysid or altitude. Usage: swarm alt <sysid> <altitude>")
+        elif cmd == "guided":
+            self.send_guided_commands()
+        elif cmd == "clear":
+            self.vehicle_altitudes.clear()
+            print("Cleared all configured altitudes")
         else:
-            print(usage)
-
-    def load_swarm_configuration(self, file_path):
-        try:
-            with open(file_path, 'r') as file:
-                data = json.load(file)
-                self.vehicleListing = []
-                for veh in data["vehicles"]:
-                    try:
-                        sysid = int(veh["sysid"])
-                        altitude = float(veh["altitude"])
-                        self.vehicleListing.append((sysid, 1, 0, altitude))
-                    except (ValueError, KeyError):
-                        print(f"Invalid entry in configuration file: {veh}")
-                self.config_loaded = True
-            print("Swarm configuration loaded successfully.")
-        except FileNotFoundError:
-            print(f"Configuration file {file_path} not found.")
-        except Exception as e:
-            print(f"Error loading configuration file: {e}")
+            print(f"Unknown command: {cmd}")
+            print("Usage: swarm <status|alt <sysid> <alt>|guided|clear>")
 
     def print_status(self):
-        for veh in self.vehicleListing:
-            sysid, compid, foll_sysid, veh_type = veh
-            name = get_vehicle_name(veh_type)
-            print(f"Vehicle {sysid}:{compid} - {name} (Leader: {foll_sysid})")
-
-    def set_takeoff_altitude(self):
-        for index, veh in enumerate(self.vehicleListing):
-            sysid, compid, foll_sysid, veh_type = veh
-            altitude = self.takeoffalt + index * self.separation_alt
-            print(f"Setting takeoff altitude for Vehicle {sysid}:{compid} to {altitude} meters")
-            self.mpstate.foreach_mav(sysid, compid, lambda mav: mav.command_int_send(
-                sysid,
-                compid,
-                frame,
-                mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                altitude
-            ))
-
-    def send_rally_location(self, lat, lon, alt=None, offset_z=None):
-        if not self.config_loaded and (alt is None or offset_z is None):
-            print("Configuration not loaded. Using provided altitude and offset.")
-        for index, veh in enumerate(self.vehicleListing):
-            sysid, compid, foll_sysid, altitude = veh
-            command_lat = lat
-            command_lon = lon
-            if self.config_loaded:
-                command_alt = altitude
-            else:
-                command_alt = alt + offset_z * index
-            self.settings.target_system = sysid
-            self.settings.target_component = compid
-            #print(f"Sending rally command to Vehicle {sysid}:{compid} to LLA ({command_lat}, {command_lon}, {command_alt})")
-            self.mpstate.foreach_mav(sysid, compid, lambda mav: self.rally_module.cmd_rally_add([command_alt]))
+        '''print status of all vehicles'''
+        print("\nConfigured Vehicles:")
+        if not self.vehicle_altitudes:
+            print("  (none)")
+        else:
+            for sysid, alt in sorted(self.vehicle_altitudes.items()):
+                print(f"  Vehicle {sysid}: {alt}m altitude")
         
-    def send_guided_commands(self, lat, lon, alt=None, offset_z=None):
-        if not self.config_loaded and (alt is None or offset_z is None):
-            print("Configuration not loaded. Using provided altitude and offset.")
-        for index, veh in enumerate(self.vehicleListing):
-            sysid, compid, foll_sysid, altitude = veh
-            command_lat = lat
-            command_lon = lon
-            if self.config_loaded:
-                command_alt = altitude
-            else:
-                command_alt = alt + offset_z * index
-            self.settings.target_system = sysid
-            self.settings.target_component = compid
-            #print(f"Guided {sysid}:{compid} set to LLA ({command_lat}, {command_lon}, {command_alt})")
-            self.mpstate.foreach_mav(sysid, compid, lambda mav: self.mode_module.cmd_guided([command_alt], mav))
+        print("\nDetected Vehicles:")
+        if not self.detected_vehicles:
+            print("  (none)")
+        else:
+            for sysid in sorted(self.detected_vehicles):
+                status = "configured" if sysid in self.vehicle_altitudes else "not configured"
+                print(f"  Vehicle {sysid}: {status}")
+        print()
+
+    def send_guided_commands(self):
+        '''send guided command to all configured vehicles'''
+        # Get click location
+        latlon = self.mpstate.click_location
+        if latlon is None:
+            print("No map click position available")
+            return
+            
+        lat, lon = latlon
+        frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
+        
+        if not self.vehicle_altitudes:
+            print("No vehicles configured. Use 'swarm alt <sysid> <altitude>' first.")
+            return
+            
+        print(f"Sending {len(self.vehicle_altitudes)} vehicles to {lat}, {lon}")
+        
+        for sysid, altitude in sorted(self.vehicle_altitudes.items()):
+            self.send_reposition_command(sysid, lat, lon, altitude)
+            print(f"  Vehicle {sysid} → {altitude}m")
+
+    def send_reposition_command(self, sysid, lat, lon, altitude):
+        '''send MAV_CMD_DO_REPOSITION to a specific vehicle'''
+        # Find the correct mavlink connection for this vehicle
+        mav_link = self.get_mav_for_sysid(sysid)
+        if mav_link is None:
+            print(f"  Warning: Vehicle {sysid} not found on any link")
+            return
+            
+        frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
+        
+        # Send reposition command
+        mav_link.command_int_send(
+            sysid,
+            1,  # component ID
+            frame,
+            mavutil.mavlink.MAV_CMD_DO_REPOSITION,
+            0,  # current
+            0,  # autocontinue
+            -1,  # p1 - ground speed, -1 is use-default
+            mavutil.mavlink.MAV_DO_REPOSITION_FLAGS_CHANGE_MODE,  # p2 - flags
+            0,  # p3 - loiter radius for Planes
+            0,  # p4 - yaw
+            int(lat * 1e7),
+            int(lon * 1e7),
+            altitude
+        )
+
+    def get_mav_for_sysid(self, sysid):
+        '''find the mavlink interface for a given sysid'''
+        if not hasattr(self.mpstate, 'vehicle_link_map'):
+            return None
+            
+        for link_num, vehicle_list in self.mpstate.vehicle_link_map.items():
+            if (sysid, 1) in vehicle_list or (sysid, mavutil.mavlink.MAV_COMP_ID_AUTOPILOT1) in vehicle_list:
+                if link_num < len(self.mpstate.mav_master):
+                    return self.mpstate.mav_master[link_num].mav
+        return None
 
     def mavlink_packet(self, m):
+        '''handle incoming mavlink packets'''
         mtype = m.get_type()
         sysid = m.get_srcSystem()
-        compid = m.get_srcComponent()
+        
+        if mtype == 'HEARTBEAT' and m.type in self.valid_vehicles:
+            self.detected_vehicles.add(sysid)
+            self.vehicle_last_hb[sysid] = time.time()
 
-        if mtype == 'HEARTBEAT' and m.type in self.validVehicles and not any(v[0] == sysid and v[1] == compid for v in self.vehicleListing):
-            self.vehicleListing.append((sysid, compid, 0, m.type))
-            self.vehParamsToGet.append((sysid, compid))
-            self.needGUIupdate = True
-            self.vehicleLastHB[(sysid, compid)] = time.time()
-        elif (sysid, compid) in self.vehicleLastHB:
-            if mtype == 'HEARTBEAT':
-                self.vehicleLastHB[(sysid, compid)] = time.time()
-            elif mtype == 'PARAM_VALUE' and m.param_id == "FOLL_SYSID":
-                for i, veh in enumerate(self.vehicleListing):
-                    if veh[0] == sysid and veh[1] == compid and veh[2] != int(m.param_value):
-                        self.vehicleListing[i] = (veh[0], veh[1], int(m.param_value), veh[3])
-                        self.needGUIupdate = True
-                        break
 
 def init(mpstate):
     return SwarmModule(mpstate)
