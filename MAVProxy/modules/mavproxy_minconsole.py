@@ -568,13 +568,13 @@ class MinMinConsoleModule(mp_module.MPModule):
                 else:
                     self.speed = 0.98*self.speed + 0.02*airspeed
     def handle_nav_controller_output(self, msg):
-            self.console.set_status('DIST', '%s' % self.dist_string(msg.wp_dist))
-            self.console.set_status('BRG', '%u' % msg.target_bearing)
+            self.console.set_status('DIST', 'DIST %s' % self.dist_string(msg.wp_dist))
+            self.console.set_status('BRG', 'BRG %u' % msg.target_bearing)
 
     def handle_high_latency2(self, msg):
-            self.console.set_status('DIST', '%s' % self.dist_string(msg.target_distance * 10))
+            self.console.set_status('DIST', 'DIST %s' % self.dist_string(msg.target_distance * 10))
             # The -180 here for for consistency with NAV_CONTROLLER_OUTPUT (-180->180), whereas HIGH_LATENCY2 is (0->360)
-            self.console.set_status('BRG', '%u' % ((msg.target_heading * 2) - 180))
+            self.console.set_status('BRG', 'BRG %u' % ((msg.target_heading * 2) - 180))
             self.console.set_status('Alt', 'Alt %s' % self.height_string(msg.altitude - self.module('terrain').ElevationModel.GetElevation(msg.latitude / 1E7, msg.longitude / 1E7)))
             self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed / 5))
             self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed / 5))
