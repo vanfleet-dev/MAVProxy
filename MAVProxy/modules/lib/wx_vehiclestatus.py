@@ -14,7 +14,7 @@ class VehicleStatusFrame(wx.Frame):
     '''The main GUI frame for the vehicle status display'''
     
     def __init__(self, pipe, title='Vehicle Status Display'):
-        super(VehicleStatusFrame, self).__init__(None, title=title, size=(750, 300))
+        super(VehicleStatusFrame, self).__init__(None, title=title, size=(500, 300))
         
         self.pipe = pipe
         self.vehicles = {}
@@ -29,8 +29,8 @@ class VehicleStatusFrame(wx.Frame):
         # Hide row labels (the numbers on the left side)
         self.grid.SetRowLabelSize(0)
         
-        # Set smaller font
-        font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        # Set slightly larger font
+        font = wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.grid.SetDefaultCellFont(font)
         self.grid.SetLabelFont(font)
         
@@ -47,15 +47,15 @@ class VehicleStatusFrame(wx.Frame):
         # Auto-size columns to fit content
         self.grid.AutoSizeColumns()
         
-        # Set minimum column widths to ensure headers fit
-        self.grid.SetColSize(0, 45)   # SYS
-        self.grid.SetColSize(1, 90)   # MODE
-        self.grid.SetColSize(2, 50)   # ALT
-        self.grid.SetColSize(3, 55)   # ARSPD
-        self.grid.SetColSize(4, 40)   # THR
-        self.grid.SetColSize(5, 90)   # BAT1
-        self.grid.SetColSize(6, 70)   # BAT2
-        self.grid.SetColSize(7, 45)   # HDG
+        # Set smaller column widths to reduce empty space
+        self.grid.SetColSize(0, 40)   # SYS
+        self.grid.SetColSize(1, 70)   # MODE
+        self.grid.SetColSize(2, 45)   # ALT
+        self.grid.SetColSize(3, 50)   # ARSPD
+        self.grid.SetColSize(4, 35)   # THR
+        self.grid.SetColSize(5, 80)   # BAT1
+        self.grid.SetColSize(6, 60)   # BAT2
+        self.grid.SetColSize(7, 40)   # HDG
         
         # Make grid read-only
         self.grid.EnableEditing(False)
