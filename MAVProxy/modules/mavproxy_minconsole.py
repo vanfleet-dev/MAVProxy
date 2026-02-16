@@ -51,10 +51,10 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0)
         mpstate.console.set_status('GPS2', 'GPS2: ', fg='red', row=0)
         mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=0)
-        mpstate.console.set_status('ALT', 'ALT: ---', row=2)
-        mpstate.console.set_status('AGL', 'AGL: ---', row=2)
-        mpstate.console.set_status('ARSPD', 'ARSPD: --', row=2)
-        mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=2)
+        mpstate.console.set_status('ALT', 'ALT: ---', row=1)
+        mpstate.console.set_status('AGL', 'AGL: ---', row=1)
+        mpstate.console.set_status('ARSPD', 'ARSPD: --', row=1)
+        mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=1)
         mpstate.console.set_status('WP', 'WP: --', row=3)
         mpstate.console.set_status('DIST', 'DIST: ---', row=3)
         mpstate.console.set_status('BRG', 'BRG: ---', row=3)
@@ -479,7 +479,7 @@ class MinMinConsoleModule(mp_module.MPModule):
             self.console.set_status('ARM', armstring, fg=arm_colour)
             if self.max_link_num != len(self.mpstate.mav_master):
                 for i in range(self.max_link_num):
-                    self.console.set_status('LINK%u'%(i+1), '', row=1)
+                    self.console.set_status('LINK%u'%(i+1), '', row=2)
                 self.max_link_num = len(self.mpstate.mav_master)
             for m in self.mpstate.mav_master:
                 if self.mpstate.settings.checkdelay:
@@ -526,7 +526,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                     if linkdelay > 1 and fg == 'dark green':
                         fg = 'orange'
 
-                self.console.set_status('LINK%u'%m.linknum, linkline, row=1, fg=fg)
+                self.console.set_status('LINK%u'%m.linknum, linkline, row=2, fg=fg)
 
     def handle_mission_current(self, msg):
             master = self.master
