@@ -50,7 +50,7 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console.set_status('GPS', 'GPS: (--)', fg='red', row=2)
         mpstate.console.set_status('GPS2', 'GPS2: (--) ', fg='red', row=2)
         mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=3)
-        mpstate.console.set_status('AMP', 'AMP: --', fg='green', row=3)
+        mpstate.console.set_status('AMP', 'AMP: --', fg='black', row=3)
         mpstate.console.set_status('THR', 'THR: ---', row=3)
         mpstate.console.set_status('ROLL', 'ROLL: ---', row=3)
         mpstate.console.set_status('PITCH', 'PITCH: ---', row=3)
@@ -425,7 +425,7 @@ class MinMinConsoleModule(mp_module.MPModule):
             # current_battery is in centi-amps, convert to amps
             if msg.current_battery != 65535:
                 current = msg.current_battery / 100.0
-                fg = green
+                fg = 'black'
                 self.console.set_status('AMP', 'AMP: %.1f' % current, fg=fg, row=3)
             else:
                 self.console.set_status('AMP', 'AMP: --', fg='red', row=3)
