@@ -52,7 +52,7 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console.set_status('GPS2', 'GPS2: ', fg='red', row=0)
         mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=0)
         mpstate.console.set_status('ALT', 'ALT: ---', row=2)
-        mpstate.console.set_status('AGL', 'AGL: ---/---', row=2)
+        mpstate.console.set_status('AGL', 'AGL: ---', row=2)
         mpstate.console.set_status('ARSPD', 'ARSPD: --', row=2)
         mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=2)
         mpstate.console.set_status('WP', 'WP: --', row=3)
@@ -383,36 +383,14 @@ class MinMinConsoleModule(mp_module.MPModule):
             lat = master.field('GLOBAL_POSITION_INT', 'lat', 0) * 1.0e-7
             lng = master.field('GLOBAL_POSITION_INT', 'lon', 0) * 1.0e-7
             rel_alt = master.field('GLOBAL_POSITION_INT', 'relative_alt', 0) * 1.0e-3
-            agl_alt = None
-            if self.module('terrain') is not None:
-                elevation_model = self.module('terrain').ElevationModel
-                if self.settings.basealt != 0:
-                    agl_alt = elevation_model.GetElevation(lat, lng)
-                    if agl_alt is not None:
-                        agl_alt = self.settings.basealt - agl_alt
-                else:
-                    try:
-                        agl_alt_home = elevation_model.GetElevation(home_lat, home_lng)
-                    except Exception as ex:
-                        print(ex)
-                        agl_alt_home = None
-                    if agl_alt_home is not None:
-                        agl_alt = elevation_model.GetElevation(lat, lng)
-                    if agl_alt is not None:
-                        agl_alt = agl_alt_home - agl_alt
             vehicle_agl = master.field('TERRAIN_REPORT', 'current_height', None)
-            if agl_alt is not None or vehicle_agl is not None or self.shown_agl:
+            if vehicle_agl is not None or self.shown_agl:
                 self.shown_agl = True
-                if agl_alt is not None:
-                    agl_alt += rel_alt
-                    agl_alt = self.height_string(agl_alt)
-                else:
-                    agl_alt = "---"
                 if vehicle_agl is None:
-                    vehicle_agl = '---'
+                    agl_display = '---'
                 else:
-                    vehicle_agl = self.height_string(vehicle_agl)
-                self.console.set_status('AGL', 'AGL: %s/%s' % (agl_alt, vehicle_agl))
+                    agl_display = self.height_string(vehicle_agl)
+                self.console.set_status('AGL', 'AGL: %s' % agl_display)
             self.console.set_status('ALT', 'ALT: %s' % self.height_string(rel_alt))
             self.console.set_status('ARSPD', 'ARSPD: %s' % self.speed_string(msg.airspeed))
             self.console.set_status('GNDSPD', 'GNDSPD: %s' % self.speed_string(msg.groundspeed))
