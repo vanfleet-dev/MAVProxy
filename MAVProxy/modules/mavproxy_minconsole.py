@@ -44,25 +44,25 @@ class MinMinConsoleModule(mp_module.MPModule):
         mpstate.console = wxconsole.MessageConsole(title='Console')
 
         # setup some default status information
-        mpstate.console.set_status('Mode', 'Mode: UNKNOWN', row=0, fg='blue', bold=True)
-        mpstate.console.set_status('SysID', 'SysID: ', row=0, fg='blue', bold=True)
-        mpstate.console.set_status('ARM', 'ARM: ARM', fg='grey', row=0, bold=True)
-        mpstate.console.set_status('FLT TIME', 'FLT TIME: --', row=0, bold=True)
-        mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0, bold=True)
-        mpstate.console.set_status('GPS2', 'GPS2: ', fg='red', row=0, bold=True)
-        mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=0, bold=True)
-        mpstate.console.set_status('ALT', 'ALT: ---', row=2, bold=True)
-        mpstate.console.set_status('AGL', 'AGL: ---/---', row=2, bold=True)
-        mpstate.console.set_status('ARSPD', 'ARSPD: --', row=2, bold=True)
-        mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=2, bold=True)
-        mpstate.console.set_status('WP', 'WP: --', row=3, bold=True)
-        mpstate.console.set_status('DIST', 'DIST: ---', row=3, bold=True)
-        mpstate.console.set_status('BRG', 'BRG: ---', row=3, bold=True)
-        mpstate.console.set_status('HDG', 'HDG: ---', row=3, bold=True)
-        mpstate.console.set_status('THR', 'THR: ---', row=4, bold=True)
-        mpstate.console.set_status('ROLL', 'ROLL: ---', row=4, bold=True)
-        mpstate.console.set_status('PITCH', 'PITCH: ---', row=4, bold=True)
-        mpstate.console.set_status('YAW', 'YAW: ---', row=4, bold=True)
+        mpstate.console.set_status('Mode', 'Mode: UNKNOWN', row=0, fg='blue')
+        mpstate.console.set_status('SysID', 'SysID: ', row=0, fg='blue')
+        mpstate.console.set_status('ARM', 'ARM: ARM', fg='grey', row=0)
+        mpstate.console.set_status('FLT TIME', 'FLT TIME: --', row=0)
+        mpstate.console.set_status('GPS', 'GPS: --', fg='red', row=0)
+        mpstate.console.set_status('GPS2', 'GPS2: ', fg='red', row=0)
+        mpstate.console.set_status('VCC', 'VCC: --', fg='red', row=0)
+        mpstate.console.set_status('ALT', 'ALT: ---', row=2)
+        mpstate.console.set_status('AGL', 'AGL: ---/---', row=2)
+        mpstate.console.set_status('ARSPD', 'ARSPD: --', row=2)
+        mpstate.console.set_status('GNDSPD', 'GNDSPD: --', row=2)
+        mpstate.console.set_status('WP', 'WP: --', row=3)
+        mpstate.console.set_status('DIST', 'DIST: ---', row=3)
+        mpstate.console.set_status('BRG', 'BRG: ---', row=3)
+        mpstate.console.set_status('HDG', 'HDG: ---', row=3)
+        mpstate.console.set_status('THR', 'THR: ---', row=4)
+        mpstate.console.set_status('ROLL', 'ROLL: ---', row=4)
+        mpstate.console.set_status('PITCH', 'PITCH: ---', row=4)
+        mpstate.console.set_status('YAW', 'YAW: ---', row=4)
 
         self.console_settings = mp_settings.MPSettings([
             ('debug_level', int, 0),
@@ -413,7 +413,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                 else:
                     vehicle_agl = self.height_string(vehicle_agl)
                 self.console.set_status('AGL', 'AGL %s/%s' % (agl_alt, vehicle_agl))
-            self.console.set_status('ALT', 'ALT: %s' % self.height_string(rel_alt), bold=True)
+            self.console.set_status('ALT', 'ALT: %s' % self.height_string(rel_alt))
             self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed))
             self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed))
             self.console.set_status('THR', 'THR %u' % msg.throttle)
@@ -459,7 +459,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                 fg = green
             else:
                 fg = 'red'
-            self.console.set_status('VCC', 'VCC: %.2f' % (msg.Vcc * 0.001), fg=fg, bold=True)
+            self.console.set_status('VCC', 'VCC: %.2f' % (msg.Vcc * 0.001), fg=fg)
             if msg.flags & mavutil.mavlink.MAV_POWER_STATUS_CHANGED:
                 fg = 'red'
             else:
@@ -548,7 +548,7 @@ class MinMinConsoleModule(mp_module.MPModule):
                     if linkdelay > 1 and fg == 'dark green':
                         fg = 'orange'
 
-                self.console.set_status('LINK%u'%m.linknum, linkline, row=1, fg=fg, bold=True)
+                self.console.set_status('LINK%u'%m.linknum, linkline, row=1, fg=fg)
 
     def handle_mission_current(self, msg):
             master = self.master
@@ -577,7 +577,7 @@ class MinMinConsoleModule(mp_module.MPModule):
             self.console.set_status('DIST', 'DIST %s' % self.dist_string(msg.target_distance * 10))
             # The -180 here for for consistency with NAV_CONTROLLER_OUTPUT (-180->180), whereas HIGH_LATENCY2 is (0->360)
             self.console.set_status('BRG', 'BRG %u' % ((msg.target_heading * 2) - 180))
-            self.console.set_status('ALT', 'ALT: %s' % self.height_string(msg.altitude - self.module('terrain').ElevationModel.GetElevation(msg.latitude / 1E7, msg.longitude / 1E7)), bold=True)
+            self.console.set_status('ALT', 'ALT: %s' % self.height_string(msg.altitude - self.module('terrain').ElevationModel.GetElevation(msg.latitude / 1E7, msg.longitude / 1E7)))
             self.console.set_status('ARSPD', 'ARSPD %s' % self.speed_string(msg.airspeed / 5))
             self.console.set_status('GNDSPD', 'GNDSPD %s' % self.speed_string(msg.groundspeed / 5))
             self.console.set_status('THR', 'THR %u' % msg.throttle)

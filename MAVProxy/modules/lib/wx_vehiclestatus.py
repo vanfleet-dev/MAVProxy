@@ -14,7 +14,7 @@ class VehicleStatusFrame(wx.Frame):
     '''The main GUI frame for the vehicle status display'''
     
     def __init__(self, pipe, title='Vehicle Status Display'):
-        super(VehicleStatusFrame, self).__init__(None, title=title, size=(900, 400))
+        super(VehicleStatusFrame, self).__init__(None, title=title, size=(750, 300))
         
         self.pipe = pipe
         self.vehicles = {}
@@ -22,34 +22,47 @@ class VehicleStatusFrame(wx.Frame):
         # Create panel
         panel = wx.Panel(self)
         
-        # Create grid
+        # Create grid with 8 columns (added THR)
         self.grid = wx.grid.Grid(panel)
-        self.grid.CreateGrid(0, 7)
+        self.grid.CreateGrid(0, 8)
         
-        # Set column labels
-        self.grid.SetColLabelValue(0, "SYS ID")
+        # Hide row labels (the numbers on the left side)
+        self.grid.SetRowLabelSize(0)
+        
+        # Set smaller font
+        font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.grid.SetDefaultCellFont(font)
+        self.grid.SetLabelFont(font)
+        
+        # Set compact column labels
+        self.grid.SetColLabelValue(0, "SYS")
         self.grid.SetColLabelValue(1, "MODE")
-        self.grid.SetColLabelValue(2, "ALT (m)")
-        self.grid.SetColLabelValue(3, "AIRSPD (m/s)")
-        self.grid.SetColLabelValue(4, "BAT1")
-        self.grid.SetColLabelValue(5, "BAT2")
-        self.grid.SetColLabelValue(6, "HDG")
+        self.grid.SetColLabelValue(2, "ALT")
+        self.grid.SetColLabelValue(3, "ARSPD")
+        self.grid.SetColLabelValue(4, "THR")
+        self.grid.SetColLabelValue(5, "BAT1")
+        self.grid.SetColLabelValue(6, "BAT2")
+        self.grid.SetColLabelValue(7, "HDG")
         
-        # Set column widths
-        self.grid.SetColSize(0, 70)
-        self.grid.SetColSize(1, 120)
-        self.grid.SetColSize(2, 80)
-        self.grid.SetColSize(3, 100)
-        self.grid.SetColSize(4, 100)
-        self.grid.SetColSize(5, 100)
-        self.grid.SetColSize(6, 60)
+        # Auto-size columns to fit content
+        self.grid.AutoSizeColumns()
+        
+        # Set minimum column widths to ensure headers fit
+        self.grid.SetColSize(0, 45)   # SYS
+        self.grid.SetColSize(1, 90)   # MODE
+        self.grid.SetColSize(2, 50)   # ALT
+        self.grid.SetColSize(3, 55)   # ARSPD
+        self.grid.SetColSize(4, 40)   # THR
+        self.grid.SetColSize(5, 90)   # BAT1
+        self.grid.SetColSize(6, 70)   # BAT2
+        self.grid.SetColSize(7, 45)   # HDG
         
         # Make grid read-only
         self.grid.EnableEditing(False)
         
-        # Create sizer
+        # Create sizer with minimal margins
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.grid, 1, wx.EXPAND | wx.ALL, 5)
+        sizer.Add(self.grid, 1, wx.EXPAND | wx.ALL, 2)
         panel.SetSizer(sizer)
         
         # Timer to check for updates from parent process
@@ -102,6 +115,10 @@ class VehicleStatusFrame(wx.Frame):
             self.grid.SetCellValue(row, 3, "%.1f" % v.get('airspeed', 0.0))
             self.grid.SetCellAlignment(row, 3, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
+            # THROTTLE
+            self.grid.SetCellValue(row, 4, "%d" % int(v.get('throttle', 0)))
+            self.grid.SetCellAlignment(row, 4, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            
             # BAT1
             bat1_voltage = v.get('bat1_voltage', 0.0)
             bat1_remaining = v.get('bat1_remaining', -1)
@@ -110,37 +127,37 @@ class VehicleStatusFrame(wx.Frame):
                     bat1_str = "%.1fV (%d%%)" % (bat1_voltage, bat1_remaining)
                 else:
                     bat1_str = "%.1fV" % bat1_voltage
-                self.grid.SetCellValue(row, 4, bat1_str)
+                self.grid.SetCellValue(row, 5, bat1_str)
             else:
-                self.grid.SetCellValue(row, 4, "--")
-            self.grid.SetCellAlignment(row, 4, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+                self.grid.SetCellValue(row, 5, "--")
+            self.grid.SetCellAlignment(row, 5, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # Set battery color based on percentage
             if bat1_remaining >= 0:
                 if bat1_remaining > 20:
-                    self.grid.SetCellBackgroundColour(row, 4, wx.Colour(200, 255, 200))  # Green
-                elif v['bat1_remaining'] > 10:
-                    self.grid.SetCellBackgroundColour(row, 4, wx.Colour(255, 255, 200))  # Yellow
+                    self.grid.SetCellBackgroundColour(row, 5, wx.Colour(200, 255, 200))  # Green
+                elif bat1_remaining > 10:
+                    self.grid.SetCellBackgroundColour(row, 5, wx.Colour(255, 255, 200))  # Yellow
                 else:
-                    self.grid.SetCellBackgroundColour(row, 4, wx.Colour(255, 200, 200))  # Red
+                    self.grid.SetCellBackgroundColour(row, 5, wx.Colour(255, 200, 200))  # Red
             
             # BAT2
             bat2_voltage = v.get('bat2_voltage', 0.0)
             if bat2_voltage > 0:
-                self.grid.SetCellValue(row, 5, "%.1fV" % bat2_voltage)
-                self.grid.SetCellBackgroundColour(row, 5, wx.Colour(200, 255, 200))  # Green
+                self.grid.SetCellValue(row, 6, "%.1fV" % bat2_voltage)
+                self.grid.SetCellBackgroundColour(row, 6, wx.Colour(200, 255, 200))  # Green
             else:
-                self.grid.SetCellValue(row, 5, "--")
-                self.grid.SetCellBackgroundColour(row, 5, wx.Colour(240, 240, 240))  # Gray
-            self.grid.SetCellAlignment(row, 5, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+                self.grid.SetCellValue(row, 6, "--")
+                self.grid.SetCellBackgroundColour(row, 6, wx.Colour(240, 240, 240))  # Gray
+            self.grid.SetCellAlignment(row, 6, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # HDG
-            self.grid.SetCellValue(row, 6, "%d" % int(v.get('hdg', 0)))
-            self.grid.SetCellAlignment(row, 6, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            self.grid.SetCellValue(row, 7, "%d" % int(v.get('hdg', 0)))
+            self.grid.SetCellAlignment(row, 7, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
             
             # Set row color based on status
             if v.get('status') == 'stale':
-                for col in range(7):
+                for col in range(8):
                     self.grid.SetCellBackgroundColour(row, col, wx.Colour(220, 220, 220))
                     self.grid.SetCellTextColour(row, col, wx.Colour(150, 150, 150))
             
