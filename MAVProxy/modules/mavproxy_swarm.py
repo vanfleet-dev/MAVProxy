@@ -192,7 +192,7 @@ class SwarmModule(mission_item_protocol.MissionItemProtocolModule):
             self.settings.target_system = sysid
             self.settings.target_component = compid
             #print(f"Guided {sysid}:{compid} set to LLA ({command_lat}, {command_lon}, {command_alt})")
-            self.mpstate.foreach_mav(sysid, compid, lambda mav: self.mode_module.cmd_guided([command_alt]))
+            self.mpstate.foreach_mav(sysid, compid, lambda mav: self.mode_module.cmd_guided([command_alt], mav))
 
     def mavlink_packet(self, m):
         mtype = m.get_type()

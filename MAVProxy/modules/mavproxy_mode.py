@@ -76,8 +76,10 @@ class ModeModule(mp_module.MPModule):
             return True
         return False
 
-    def cmd_guided(self, args):
+    def cmd_guided(self, args, mav=None):
         '''set GUIDED target'''
+        if mav is None:
+            mav = self.master.mav
         if len(args) > 0:
             if args[0] == "forward":
                 return self.cmd_guided_forward(args[1:])
@@ -112,7 +114,7 @@ class ModeModule(mp_module.MPModule):
         print("Guided %s %s frame %u" % (str(latlon), str(altitude), frame))
 
         if self.settings.guided_use_reposition:
-            self.master.mav.command_int_send(
+            mav.command_int_send(
                 self.settings.target_system,
                 self.settings.target_component,
                 frame,
@@ -129,7 +131,7 @@ class ModeModule(mp_module.MPModule):
             )
             return
 
-        self.master.mav.mission_item_int_send(
+        mav.mission_item_int_send(
             self.settings.target_system,
             self.settings.target_component,
             0,
