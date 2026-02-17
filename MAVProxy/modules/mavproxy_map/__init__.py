@@ -61,7 +61,7 @@ class MapModule(mp_module.MPModule):
             ('showahrs3pos', int, 0),
             ('brightness', float, 1),
             ('rallycircle', bool, False),
-            ('loitercircle', bool, False),
+            ('loitercircle', bool, True),
             ('showclicktime', int, 2),
             ('showwpnum', bool, True),
             ('circle_linewidth', int, 1),
