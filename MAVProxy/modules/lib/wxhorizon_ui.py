@@ -1,6 +1,7 @@
 import time
 from MAVProxy.modules.lib.wxhorizon_util import Attitude, VFR_HUD, Global_Position_INT, BatteryInfo, FlightState, WaypointInfo, FPS
 from MAVProxy.modules.lib.wx_loader import wx
+from MAVProxy.modules.lib import win_layout
 import math, time
 
 import matplotlib
@@ -15,8 +16,10 @@ import matplotlib as mpl
 class HorizonFrame(wx.Frame):
     """ The main frame of the horizon indicator."""
 
-    def __init__(self, state, title):
+    def __init__(self, state, pipe_recv, pipe_send, title):
         self.state = state
+        self.pipe_recv = pipe_recv
+        self.pipe_send = pipe_send
         # Create Frame and Panel(s)
         wx.Frame.__init__(self, None, title=title)
         state.frame = self
@@ -572,6 +575,15 @@ class HorizonFrame(wx.Frame):
             
             self.resized = False
         
+        # Send layout to parent periodically
+        if not hasattr(self, 'last_layout_send'):
+            self.last_layout_send = time.time()
+        now = time.time()
+        if now - self.last_layout_send > 1:
+            self.last_layout_send = now
+            layout = win_layout.get_wx_window_layout(self)
+            self.pipe_send.send(layout)
+        
         time.sleep(0.05)
  
     def on_timer(self, event):
@@ -589,15 +601,20 @@ class HorizonFrame(wx.Frame):
             self.on_idle(0)
         
         # Get attitude information
-        while state.child_pipe_recv.poll():           
-            objList = state.child_pipe_recv.recv()
-            for obj in objList:
+        while self.pipe_recv.poll():
+            obj = self.pipe_recv.recv()
+            # Handle layout restoration from parent
+            if isinstance(obj, win_layout.WinLayout):
+                win_layout.set_wx_window_layout(self, obj)
+                continue
+            # obj is a list of message objects
+            for item in obj:
                 self.calcFontScaling()
-                if isinstance(obj,Attitude):
+                if isinstance(item,Attitude):
                     self.oldRoll = self.roll
-                    self.pitch = obj.pitch*180/math.pi
-                    self.roll = obj.roll*180/math.pi
-                    self.yaw = obj.yaw*180/math.pi
+                    self.pitch = item.pitch*180/math.pi
+                    self.roll = item.roll*180/math.pi
+                    self.yaw = item.yaw*180/math.pi
                     
                     # Update Roll, Pitch, Yaw Text Text
                     self.updateRPYText()
@@ -608,10 +625,10 @@ class HorizonFrame(wx.Frame):
                     # Update Pitch Markers
                     self.adjustPitchmarkers()
                 
-                elif isinstance(obj,VFR_HUD):
-                    self.heading = obj.heading
-                    self.airspeed = obj.airspeed
-                    self.climbRate = obj.climbRate
+                elif isinstance(item,VFR_HUD):
+                    self.heading = item.heading
+                    self.airspeed = item.airspeed
+                    self.climbRate = item.climbRate
                     
                     # Update Airpseed, Altitude, Climb Rate Locations
                     self.updateAARText()
@@ -620,9 +637,9 @@ class HorizonFrame(wx.Frame):
                     self.adjustHeadingPointer()
                     self.adjustNorthPointer()
                 
-                elif isinstance(obj,Global_Position_INT):
-                    self.relAlt = obj.relAlt
-                    self.relAltTime = obj.curTime
+                elif isinstance(item,Global_Position_INT):
+                    self.relAlt = item.relAlt
+                    self.relAltTime = item.curTime
                     
                     # Update Airpseed, Altitude, Climb Rate Locations
                     self.updateAARText()
@@ -630,30 +647,30 @@ class HorizonFrame(wx.Frame):
                     # Update Altitude History
                     self.updateAltHistory()
                     
-                elif isinstance(obj,BatteryInfo):
-                    self.voltage = obj.voltage
-                    self.current = obj.current
-                    self.batRemain = obj.batRemain
+                elif isinstance(item,BatteryInfo):
+                    self.voltage = item.voltage
+                    self.current = item.current
+                    self.batRemain = item.batRemain
                     
                     # Update Battery Bar
                     self.updateBatteryBar()
                     
-                elif isinstance(obj,FlightState):
-                    self.mode = obj.mode
-                    self.armed = obj.armState
+                elif isinstance(item,FlightState):
+                    self.mode = item.mode
+                    self.armed = item.armState
                     
                     # Update Mode and Arm State Text
                     self.updateStateText()
                     
-                elif isinstance(obj,WaypointInfo):
-                    self.currentWP = obj.current
-                    self.finalWP = obj.final
-                    self.wpDist = obj.currentDist
-                    self.nextWPTime = obj.nextWPTime
-                    if obj.wpBearing < 0.0:
-                        self.wpBearing = obj.wpBearing + 360
+                elif isinstance(item,WaypointInfo):
+                    self.currentWP = item.current
+                    self.finalWP = item.final
+                    self.wpDist = item.currentDist
+                    self.nextWPTime = item.nextWPTime
+                    if item.wpBearing < 0.0:
+                        self.wpBearing = item.wpBearing + 360
                     else:
-                        self.wpBearing = obj.wpBearing
+                        self.wpBearing = item.wpBearing
                     
                     # Update waypoint text
                     self.updateWPText()
@@ -661,9 +678,9 @@ class HorizonFrame(wx.Frame):
                     # Adjust Waypoint Pointer
                     self.adjustWPPointer()
                     
-                elif isinstance(obj, FPS):
+                elif isinstance(item, FPS):
                     # Update fps target
-                    self.fps = obj.fps
+                    self.fps = item.fps
                 
                 
         # Quit Drawing if too early

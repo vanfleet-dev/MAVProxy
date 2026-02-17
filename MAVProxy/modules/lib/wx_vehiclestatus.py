@@ -7,16 +7,18 @@
 import time
 
 from MAVProxy.modules.lib.wx_loader import wx
+from MAVProxy.modules.lib import win_layout
 import wx.grid
 
 
 class VehicleStatusFrame(wx.Frame):
     '''The main GUI frame for the vehicle status display'''
     
-    def __init__(self, pipe, title='Vehicle Status Display'):
+    def __init__(self, pipe_recv, pipe_send, title='Vehicle Status Display'):
         super(VehicleStatusFrame, self).__init__(None, title=title, size=(500, 300))
         
-        self.pipe = pipe
+        self.pipe_recv = pipe_recv
+        self.pipe_send = pipe_send
         self.vehicles = {}
         
         # Create panel
@@ -73,12 +75,21 @@ class VehicleStatusFrame(wx.Frame):
         # Handle close event
         self.Bind(wx.EVT_CLOSE, self.on_close)
         
+        # Layout support - send window position/size periodically
+        self.last_layout_send = time.time()
+        self.Bind(wx.EVT_IDLE, self.on_idle)
+        
     def on_timer(self, event):
         '''Check for updates from parent process'''
-        while self.pipe.poll():
+        while self.pipe_recv.poll():
             try:
-                self.vehicles = self.pipe.recv()
-                self.refresh_grid()
+                obj = self.pipe_recv.recv()
+                if isinstance(obj, win_layout.WinLayout):
+                    # Apply layout from parent (for restore)
+                    win_layout.set_wx_window_layout(self, obj)
+                else:
+                    self.vehicles = obj
+                    self.refresh_grid()
             except EOFError:
                 break
                 
@@ -173,6 +184,14 @@ class VehicleStatusFrame(wx.Frame):
             
         self.grid.Refresh()
         
+    def on_idle(self, event):
+        '''Send window layout to parent periodically'''
+        now = time.time()
+        if now - self.last_layout_send > 1:
+            self.last_layout_send = now
+            layout = win_layout.get_wx_window_layout(self)
+            self.pipe_send.send(layout)
+
     def on_close(self, event):
         '''Handle window close event'''
         self.timer.Stop()

@@ -1,6 +1,7 @@
 import time
 from MAVProxy.modules.lib.wxhorizon_util import Attitude, VFR_HUD, Global_Position_INT, BatteryInfo, FPS
 from MAVProxy.modules.lib.wx_loader import wx
+from MAVProxy.modules.lib import win_layout
 import math, time
 
 import matplotlib
@@ -16,8 +17,10 @@ import matplotlib as mpl
 class MinHorizonFrame(wx.Frame):
     """ The main frame of the minimal horizon indicator."""
 
-    def __init__(self, state, title):
+    def __init__(self, state, pipe_recv, pipe_send, title):
         self.state = state
+        self.pipe_recv = pipe_recv
+        self.pipe_send = pipe_send
         # Create Frame and Panel(s)
         wx.Frame.__init__(self, None, title=title)
         state.frame = self
@@ -333,7 +336,7 @@ class MinHorizonFrame(wx.Frame):
         
     def on_idle(self, event):
         self.checkResize()
-        
+
         if self.resized:
             self.rescaleX()
             self.calcFontScaling()
@@ -346,7 +349,16 @@ class MinHorizonFrame(wx.Frame):
             self.canvas.draw()
             self.canvas.Refresh()
             self.resized = False
-        
+
+        # Send layout to parent periodically
+        if not hasattr(self, 'last_layout_send'):
+            self.last_layout_send = time.time()
+        now = time.time()
+        if now - self.last_layout_send > 1:
+            self.last_layout_send = now
+            layout = win_layout.get_wx_window_layout(self)
+            self.pipe_send.send(layout)
+
         time.sleep(0.05)
  
     def on_timer(self, event):
@@ -361,28 +373,33 @@ class MinHorizonFrame(wx.Frame):
         if self.resized:
             self.on_idle(0)
         
-        while state.child_pipe_recv.poll():           
-            objList = state.child_pipe_recv.recv()
-            for obj in objList:
+        while self.pipe_recv.poll():
+            obj = self.pipe_recv.recv()
+            # Handle layout restoration from parent
+            if isinstance(obj, win_layout.WinLayout):
+                win_layout.set_wx_window_layout(self, obj)
+                continue
+            # obj is a list of message objects
+            for item in obj:
                 self.calcFontScaling()
-                if isinstance(obj, Attitude):
-                    self.pitch = obj.pitch * 180 / math.pi
-                    self.roll = obj.roll * 180 / math.pi
+                if isinstance(item, Attitude):
+                    self.pitch = item.pitch * 180 / math.pi
+                    self.roll = item.roll * 180 / math.pi
                     self.calcHorizonPoints()
                     self.adjustPitchmarkers()
-                
-                elif isinstance(obj, VFR_HUD):
-                    self.heading = obj.heading
+
+                elif isinstance(item, VFR_HUD):
+                    self.heading = item.heading
                     self.adjustHeadingPointer()
                     self.adjustNorthPointer()
-                
-                elif isinstance(obj, Global_Position_INT):
-                    self.relAlt = obj.relAlt
-                    self.relAltTime = obj.curTime
+
+                elif isinstance(item, Global_Position_INT):
+                    self.relAlt = item.relAlt
+                    self.relAltTime = item.curTime
                     self.updateAltHistory()
-                
-                elif isinstance(obj, BatteryInfo):
-                    self.batRemain = obj.batRemain
+
+                elif isinstance(item, BatteryInfo):
+                    self.batRemain = item.batRemain
                     self.updateBatteryBar()
         
         if (time.time() > self.nextTime):                     

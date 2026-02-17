@@ -9,7 +9,9 @@
 from MAVProxy.modules.lib import mp_module
 from MAVProxy.modules.lib import mp_util
 from MAVProxy.modules.lib import multiproc
+from MAVProxy.modules.lib import win_layout
 from pymavlink import mavutil
+import threading
 import time
 
 
@@ -31,6 +33,7 @@ class MultiStatusModule(mp_module.MPModule):
         
         # GUI window - create automatically when module loads
         self.indicator = None
+        self.watch_thread = None
         self.create_window()
         self.window_visible = True
         
@@ -149,14 +152,41 @@ class MultiStatusModule(mp_module.MPModule):
         '''Create the GUI window using multiprocessing'''
         if self.indicator is not None and self.indicator.is_alive():
             return
-            
+
         self.indicator = MultiStatusIndicator(title='Multi-Vehicle Status')
+
+        # Start watch thread to receive layouts from child process
+        self.watch_thread = threading.Thread(target=self.watch_thread_func)
+        self.watch_thread.daemon = True
+        self.watch_thread.start()
+
+    def watch_thread_func(self):
+        '''Watch for layout events from child process'''
+        try:
+            while True:
+                if self.indicator and self.indicator.parent_pipe_recv.poll(0.1):
+                    msg = self.indicator.parent_pipe_recv.recv()
+                    if isinstance(msg, win_layout.WinLayout):
+                        win_layout.set_layout(msg, self.set_layout)
+                time.sleep(0.1)
+        except (EOFError, BrokenPipeError):
+            pass
+
+    def set_layout(self, layout):
+        '''set window layout - callback for layout system'''
+        if self.indicator:
+            try:
+                self.indicator.parent_pipe_send.send(layout)
+            except Exception:
+                pass
         
     def close_window(self):
         '''Close the GUI window'''
         if self.indicator:
             self.indicator.close()
             self.indicator = None
+        if self.watch_thread:
+            self.watch_thread = None
         
     def update_display(self):
         '''Update the GUI with current vehicle data'''
@@ -205,17 +235,20 @@ class MultiStatusIndicator():
     '''A multi-vehicle status indicator for MAVProxy.'''
     def __init__(self, title='MAVProxy: Multi-Status'):
         self.title = title
-        # Create Pipe to send vehicle data from module to UI
+        # Create two pipes: one for parent->child (data), one for child->parent (layouts)
         self.child_pipe_recv, self.parent_pipe_send = multiproc.Pipe()
+        self.parent_pipe_recv, self.child_pipe_send = multiproc.Pipe()
         self.close_event = multiproc.Event()
         self.close_event.clear()
         self.child = multiproc.Process(target=self.child_task)
         self.child.start()
         self.child_pipe_recv.close()
+        self.child_pipe_send.close()
 
     def child_task(self):
         '''Child process - this holds all the GUI elements'''
         self.parent_pipe_send.close()
+        self.parent_pipe_recv.close()
         
         from MAVProxy.modules.lib import wx_processguard
         from MAVProxy.modules.lib.wx_loader import wx
@@ -223,7 +256,7 @@ class MultiStatusIndicator():
         
         # Create wx application
         app = wx.App(False)
-        app.frame = VehicleStatusFrame(pipe=self.child_pipe_recv, title=self.title)
+        app.frame = VehicleStatusFrame(pipe_recv=self.child_pipe_recv, pipe_send=self.child_pipe_send, title=self.title)
         app.frame.Show()
         app.MainLoop()
         self.close_event.set()
