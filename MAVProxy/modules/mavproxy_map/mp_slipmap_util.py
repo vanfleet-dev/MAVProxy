@@ -563,24 +563,34 @@ class SlipTrail:
 class SlipIcon(SlipThumbnail):
     '''a icon to display on the map'''
     def __init__(self, key, latlon, img, layer=1, rotation=0,
-                 follow=False, trail=None, popup_menu=None, label=None, colour=(255, 255, 255)):
+                 follow=False, trail=None, popup_menu=None, label=None, colour=(255, 255, 255), scale=0.5):
         SlipThumbnail.__init__(self, key, latlon, layer, img, popup_menu=popup_menu)
         self.rotation = rotation
         self.follow = follow
         self.trail = trail
         self.label = label
         self.colour = colour # label colour
+        self.scale = scale  # icon scale factor (default 0.5 = half size)
 
     def img(self):
         '''return a cv image for the icon'''
         SlipThumbnail.img(self)
 
+        # Apply scaling if needed
+        if self.scale != 1.0 and self._img is not None:
+            new_width = int(self.width * self.scale)
+            new_height = int(self.height * self.scale)
+            scaled_img = cv2.resize(self._img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        else:
+            scaled_img = self._img
+
         if self.rotation:
             # rotate the image
-            mat = cv2.getRotationMatrix2D((self.height//2, self.width//2), -self.rotation, 1.0)
-            self._rotated = cv2.warpAffine(self._img, mat, (self.height, self.width))
+            (h, w) = scaled_img.shape[:2]
+            mat = cv2.getRotationMatrix2D((w//2, h//2), -self.rotation, 1.0)
+            self._rotated = cv2.warpAffine(scaled_img, mat, (w, h))
         else:
-            self._rotated = self._img
+            self._rotated = scaled_img
         return self._rotated
 
     def draw(self, img, pixmapper, bounds):

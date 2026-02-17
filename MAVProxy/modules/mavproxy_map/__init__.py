@@ -69,6 +69,7 @@ class MapModule(mp_module.MPModule):
             ('setpos_accuracy', float, 50),
             ('mission_color', str, "white"),
             ('font_size', float, 0.5),
+            ('icon_scale', float, 0.5),
             ('contour_levels', int, 20),
             ('contour_grid_spacing', float, 30.0),
             ('contour_grid_extent', float, 20000.0),
@@ -950,6 +951,7 @@ Usage: map circle <radius> <colour>
             rotation=0,
             follow=follow,
             trail=mp_slipmap.SlipTrail(),
+            scale=self.map_settings.icon_scale,
         ))
 
     def remove_vehicle_icon(self, name, vehicle_type=None):
