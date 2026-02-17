@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 '''
-mission editor module
-Michael Day
-June 2104
+simplified mission editor module for multi-vehicle operations
 '''
 
 from MAVProxy.modules.lib import mp_module
 
-class MissionEditorModule(mp_module.MPModule):
+class MinMissionEditorModule(mp_module.MPModule):
     '''
-    A Mission Editor for use with MAVProxy
+    A Simplified Mission Editor for multi-vehicle operations
     '''
     def __init__(self, mpstate):
-        super(MissionEditorModule, self).__init__(mpstate, "misseditor", "mission editor", public = True)
+        super(MinMissionEditorModule, self).__init__(mpstate, "minmisseditor", "mission editor", public = True)
 
         # to work around an issue on MacOS this module is a thin wrapper around a separate MissionEditorMain object
-        from MAVProxy.modules.mavproxy_misseditor import mission_editor
+        from MAVProxy.modules.mavproxy_minmisseditor import mission_editor
         self.me_main = mission_editor.MissionEditorMain(mpstate, self.module('terrain').ElevationModel.database)
 
     def unload(self):
@@ -35,4 +33,4 @@ class MissionEditorModule(mp_module.MPModule):
 
 def init(mpstate):
     '''initialise module'''
-    return MissionEditorModule(mpstate)
+    return MinMissionEditorModule(mpstate)

@@ -14,13 +14,13 @@ import traceback
 import time, math, os
 from MAVProxy.modules.lib import mp_util
 from MAVProxy.modules.lib import win_layout
-from MAVProxy.modules.mavproxy_misseditor import me_event
+from MAVProxy.modules.mavproxy_minmisseditor import me_event
 MissionEditorEvent = me_event.MissionEditorEvent
 
-from MAVProxy.modules.mavproxy_misseditor import me_defines
+from MAVProxy.modules.mavproxy_minmisseditor import me_defines
 from MAVProxy.modules.lib import mp_elevation
 
-from MAVProxy.modules.mavproxy_misseditor import button_renderer
+from MAVProxy.modules.mavproxy_minmisseditor import button_renderer
 from pymavlink import mavutil
 
 #define column names via "enums":
@@ -180,8 +180,7 @@ class MissionEditorFrame(wx.Frame):
         self.state = state
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
-        self.label_sync_state = wx.StaticText(self, wx.ID_ANY, "UNSYNCED   \n", style=wx.ALIGN_CENTRE)
-        self.button_read_wps = wx.Button(self, wx.ID_ANY, "Read WPs")
+        self.button_read_wps = wx.Button(self, wx.ID_ANY, "List WPs")
         self.button_write_wps = wx.Button(self, wx.ID_ANY, "Write WPs")
         self.button_load_wp_file = wx.Button(self, wx.ID_ANY, "Load WP File")
         self.button_save_wp_file = wx.Button(self, wx.ID_ANY, "Save WP File")
@@ -256,8 +255,6 @@ class MissionEditorFrame(wx.Frame):
         # begin wxGlade: MissionEditorFrame.__set_properties
         self.SetTitle("Mission Editor")
         self.SetSize((820, 480))
-        self.label_sync_state.SetForegroundColour(wx.Colour(255, 0, 0))
-        self.label_sync_state.SetFont(wx.Font(14, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Droid Sans"))
         self.grid_mission.CreateGrid(0, 15)
         self.grid_mission.SetRowLabelSize(20)
         self.grid_mission.SetColLabelSize(20)
@@ -285,8 +282,6 @@ class MissionEditorFrame(wx.Frame):
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_top = wx.BoxSizer(wx.HORIZONTAL)
         sizer_16 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_top.Add(self.label_sync_state, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
-        sizer_top.Add((10, 0), 0, 0, 0)
         sizer_top.Add(self.button_read_wps, 0, 0, 0)
         sizer_top.Add((10, 0), 0, 0, 0)
         sizer_top.Add(self.button_write_wps, 0, 0, 0)
@@ -459,11 +454,6 @@ class MissionEditorFrame(wx.Frame):
         if (modified):
             self.set_grad_dist()
             self.set_agl()
-            self.label_sync_state.SetLabel("MODIFIED")
-            self.label_sync_state.SetForegroundColour(wx.Colour(255, 0, 0))
-        else:
-            self.label_sync_state.SetLabel("SYNCED")
-            self.label_sync_state.SetForegroundColour(wx.Colour(12, 152, 26))
 
     def read_wp_pushed(self, event):  # wxGlade: MissionEditorFrame.<event_handler>
         self.event_queue_lock.acquire()

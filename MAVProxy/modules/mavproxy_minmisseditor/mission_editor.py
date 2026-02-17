@@ -9,7 +9,7 @@ from MAVProxy.modules.lib import mp_util
 from MAVProxy.modules.lib import multiproc
 from MAVProxy.modules.lib import win_layout
 
-from MAVProxy.modules.mavproxy_misseditor import me_event
+from MAVProxy.modules.mavproxy_minmisseditor import me_event
 MissionEditorEvent = me_event.MissionEditorEvent
 
 from pymavlink import mavutil
@@ -319,7 +319,7 @@ class MissionEditorMain(object):
 
         from MAVProxy.modules.lib import wx_processguard
         from ..lib.wx_loader import wx
-        from MAVProxy.modules.mavproxy_misseditor import missionEditorFrame
+        from MAVProxy.modules.mavproxy_minmisseditor import missionEditorFrame
 
         self.app = wx.App(False)
         self.app.frame = missionEditorFrame.MissionEditorFrame(self,parent=None,id=wx.ID_ANY, elemodel=elemodel)
@@ -382,4 +382,4 @@ class MissionEditorMain(object):
 
 def init(mpstate):
     '''initialise module'''
-    return MissionEditorModule(mpstate)
+    return MinMissionEditorModule(mpstate)
