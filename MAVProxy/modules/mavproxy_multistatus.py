@@ -47,6 +47,10 @@ class MultiStatusModule(mp_module.MPModule):
         msg_type = msg.get_type()
         sysid = msg.get_srcSystem()
         
+        # Skip SYS_ID 0 - invalid system ID
+        if sysid == 0:
+            return
+        
         # Initialize vehicle entry if new
         if sysid not in self.vehicles:
             self.vehicles[sysid] = {

@@ -31,8 +31,8 @@ class VehicleStatusFrame(wx.Frame):
         # Hide row labels (the numbers on the left side)
         self.grid.SetRowLabelSize(0)
         
-        # Set slightly larger font
-        font = wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        # Set smaller font for Linux displays
+        font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.grid.SetDefaultCellFont(font)
         self.grid.SetLabelFont(font)
         
@@ -49,15 +49,15 @@ class VehicleStatusFrame(wx.Frame):
         # Auto-size columns to fit content
         self.grid.AutoSizeColumns()
         
-        # Set smaller column widths to reduce empty space
-        self.grid.SetColSize(0, 40)   # SYS
-        self.grid.SetColSize(1, 70)   # MODE
-        self.grid.SetColSize(2, 45)   # ALT
-        self.grid.SetColSize(3, 50)   # ARSPD
-        self.grid.SetColSize(4, 35)   # THR
-        self.grid.SetColSize(5, 80)   # BAT1
-        self.grid.SetColSize(6, 60)   # BAT2
-        self.grid.SetColSize(7, 45)   # LINK
+        # Set column widths for Linux displays (wider columns, smaller font)
+        self.grid.SetColSize(0, 50)   # SYS
+        self.grid.SetColSize(1, 80)   # MODE
+        self.grid.SetColSize(2, 55)   # ALT
+        self.grid.SetColSize(3, 60)   # ARSPD
+        self.grid.SetColSize(4, 45)   # THR
+        self.grid.SetColSize(5, 90)   # BAT1
+        self.grid.SetColSize(6, 70)   # FUEL
+        self.grid.SetColSize(7, 55)   # LINK
         
         # Make grid read-only
         self.grid.EnableEditing(False)
@@ -147,16 +147,20 @@ class VehicleStatusFrame(wx.Frame):
             if bat1_remaining >= 0:
                 if bat1_remaining > 20:
                     self.grid.SetCellBackgroundColour(row, 5, wx.Colour(200, 255, 200))  # Green
+                    self.grid.SetCellTextColour(row, 5, wx.Colour(0, 100, 0))  # Dark green text
                 elif bat1_remaining > 10:
                     self.grid.SetCellBackgroundColour(row, 5, wx.Colour(255, 255, 200))  # Yellow
+                    self.grid.SetCellTextColour(row, 5, wx.Colour(0, 100, 0))  # Dark green text
                 else:
                     self.grid.SetCellBackgroundColour(row, 5, wx.Colour(255, 200, 200))  # Red
+                    self.grid.SetCellTextColour(row, 5, wx.Colour(0, 100, 0))  # Dark green text
             
             # BAT2
             bat2_voltage = v.get('bat2_voltage', 0.0)
             if bat2_voltage > 0:
-                self.grid.SetCellValue(row, 6, "%.1fV" % bat2_voltage)
+                self.grid.SetCellValue(row, 6, "%.1f" % bat2_voltage)
                 self.grid.SetCellBackgroundColour(row, 6, wx.Colour(200, 255, 200))  # Green
+                self.grid.SetCellTextColour(row, 6, wx.Colour(0, 100, 0))  # Dark green text
             else:
                 self.grid.SetCellValue(row, 6, "--")
                 self.grid.SetCellBackgroundColour(row, 6, wx.Colour(240, 240, 240))  # Gray

@@ -104,7 +104,7 @@ class MinHorizonFrame(wx.Frame):
         self.figure = Figure()
         self.axes = self.figure.add_subplot(111)
         self.canvas = FigureCanvas(self, -1, self.figure)
-        self.canvas.SetSize(wx.Size(300,300))
+        self.canvas.SetSize(wx.Size(150,150))  # Reduced from 300x300 for compact Linux HUD
         self.axes.axis('off')
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
